@@ -60,7 +60,7 @@ local function main()
                     learningRateDecay   = options.learningRateDecay }
 
     
-    local epoch = 1 
+    local epoch = 0 
 
     while true do
         mlp = mlp or nnet.get_net(options)  
@@ -88,11 +88,11 @@ local function main()
 
         local mlp_loss = nnet.eval_net(samples, funs, mlp, options)
         if best_mlp_loss > mlp_loss then
-            best_mlp = mlp
+            best_mlp = mlp:clone()
             best_mlp_loss = mlp_loss
         end
         print(string.format('Epoch %3d: Best MLP: %.4f\tCurrent MLP: %.4f', epoch, best_mlp_loss, mlp_loss))
-
+        
         --os.execute('sleep 2')
         epoch = epoch + 1
     end
