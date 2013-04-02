@@ -51,7 +51,7 @@ local function main()
     
     local sigma_start = 1
     local sigma = sigma_start
-    local sigma_decay = 1e-3
+    local sigma_decay = 1e-4
     local epoch = 1 
 
     while true do

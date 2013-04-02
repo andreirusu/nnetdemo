@@ -7,7 +7,7 @@ function nnet.set_options()
     local options = {}
     options.input = {}
 
-    options.input.size  = 1000
+    options.input.size  = 100
     options.input.min   = -5
     options.input.max   = 5
     options.input.cols  = 1
@@ -29,7 +29,7 @@ function nnet.get_net(options)
     end
 
     local init_bias = function(x) 
-        return torch.randn(1):mul(0.1):squeeze()
+        return torch.randn(1):mul(1):squeeze()
     end
 
     local n_old 
@@ -46,9 +46,6 @@ function nnet.get_net(options)
             mlp:add(nn.Tanh())
         end
     end
-
-    
-
     
     return mlp
 end
