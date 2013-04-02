@@ -61,7 +61,7 @@ function nnet.plot(samples, funs, options)
 
     local tab = {}
     for _,fun in pairs(funs) do
-        table.insert(tab, {samples, samples:clone():apply(fun), '+-'})
+        table.insert(tab, {samples, samples:clone():apply(fun), '~'})
     end
     gnuplot.plot(tab)
 end
@@ -71,8 +71,8 @@ function nnet.get_data(options)
 end
 
 function nnet.eval_net(samples, funs, options)
-    return torch.mean(torch.abs(samples:clone():apply(funs[1]):add(-samples:clone():apply(funs[2])))) -- L1
-    --return torch.mean(torch.pow(samples:clone():apply(funs[1]):add(-samples:clone():apply(funs[2])),2)) -- L2
+    --return torch.mean(torch.abs(samples:clone():apply(funs[1]):add(-samples:clone():apply(funs[2])))) -- L1
+    return torch.mean(torch.pow(samples:clone():apply(funs[1]):add(-samples:clone():apply(funs[2])),2)) -- L2
 end
 
 
