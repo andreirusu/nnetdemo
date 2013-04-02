@@ -2,34 +2,43 @@ require 'torch'
 require 'nn'
 require 'nnet'
 require 'sys'
+require 'optim'
 
 
-local function mutate(mlp_input, sigma)
-    local mlp = mlp_input:clone() 
-    
-    local mutation = function(x)    
-        return x + sigma * (torch.randn(1):squeeze())
-    end
-    local found = false
-    repeat 
-        local i = torch.random(1, mlp:size())
 
-        local layer  = mlp:get(i)
-        if layer.weight and layer.bias then
-            -- mutate one of the weights or biases with sigma
-            if torch.rand(1):squeeze() >= 0.5 then
-                local m = torch.random(1, layer.weight:size(1))
-                local n = torch.random(1, layer.weight:size(2))
-                layer.weight[m][n] = mutation(layer.weight[m][n])
-            else
-                local m = torch.random(1, layer.bias:size(1))
-                layer.bias[m] = mutation(layer.bias[m])
-            end
-            found = true
+function train_network(model, samples, config, options)
+    local criterion = nn.MSECriterion()
+    local parameters, gradParameters = model:getParameters()
+    local shuffle = torch.randperm(options.size)
+
+
+    local inputs = torch.Tensor(options.size, 1):copy(samples.x)
+    local targets = torch.Tensor(options.size, 1):copy(samples.y)
+
+    local feval = function(x) 
+        local f = 0
+        gradParameters:zero()
+
+        for t = 1,options.size do
+            local i = shuffle[t]
+            local pred = model:forward(inputs[i])
+            loss = criterion:forward(pred, targets[i])
+            f = f + loss
+            local df_do = criterion:backward(pred, targets[i])
+            
+            model:backward(inputs[i], df_do)
+            
         end
-    until found
-    return mlp
+        -- average parameters
+        gradParameters:div(options.size)
+
+        return f, gradParameters
+    end
+
+    optim.sgd(feval, parameters, config)
 end
+
+
 
 local function main()
     local options = nnet.parse_arg(arg)
@@ -45,17 +54,18 @@ local function main()
     local best_mlp_loss = math.huge
     local mlp
     
-    local sigma_start = 1
-    local sigma = sigma_start
-    local sigma_decay = 1e-4
+    local config = {learningRate        = options.learningRate,
+                    momentum            = options.momentum,
+                    weightDecay         = options.weightDecay,
+                    learningRateDecay   = options.learningRateDecay }
+
+    
     local epoch = 1 
 
     while true do
         mlp = mlp or nnet.get_net(options)  
-        --print(mlp)
-
         
-        local funs = {  function(x) 
+        local funs = {  function(x)  
                             return torch.abs(x) * torch.sin(x) 
                         end, 
                         function(x) 
@@ -63,12 +73,8 @@ local function main()
                         end
                     }
 
-        local mlp_loss = nnet.eval_net(samples, funs, mlp, options)
-        if best_mlp_loss > mlp_loss then
-            best_mlp = mlp
-            best_mlp_loss = mlp_loss
-        end
-        print(string.format('Epoch %3d: Best MLP: %.4f\tCurrent MLP: %.4f\tSigma: %.3f', epoch, best_mlp_loss, mlp_loss, sigma))
+        train_network(mlp, {x=samples, y=samples:clone():apply(funs[1])}, config, options)
+
        
         if best_mlp then
             table.insert(funs,
@@ -78,9 +84,16 @@ local function main()
         end
 
         nnet.plot(samples, funs, options)
+
+
+        local mlp_loss = nnet.eval_net(samples, funs, mlp, options)
+        if best_mlp_loss > mlp_loss then
+            best_mlp = mlp
+            best_mlp_loss = mlp_loss
+        end
+        print(string.format('Epoch %3d: Best MLP: %.4f\tCurrent MLP: %.4f', epoch, best_mlp_loss, mlp_loss))
+
         --os.execute('sleep 2')
-        mlp = mutate(best_mlp, sigma) 
-        sigma = sigma_start / (1 + sigma_decay * epoch)
         epoch = epoch + 1
     end
 end
