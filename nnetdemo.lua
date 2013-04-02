@@ -24,11 +24,11 @@ local function get_net(options)
     local mlp = nn.Sequential()
 
     local init_weight = function(x) 
-        return torch.randn(1):squeeze()
+        return torch.randn(1):mul(1):squeeze()
     end
 
     local init_bias = function(x) 
-        return torch.randn(1):mul(1):squeeze()
+        return torch.randn(1):mul(0.1):squeeze()
     end
 
     local n_old 
