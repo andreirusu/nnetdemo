@@ -95,7 +95,6 @@ local function main()
         end
         print(string.format('Epoch %3d: Best MLP: %.4f\tCurrent MLP: %.4f', epoch, best_mlp_loss, mlp_loss))
         
-        --os.execute('sleep 2')
         epoch = epoch + 1
     end
 end

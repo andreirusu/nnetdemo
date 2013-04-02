@@ -51,9 +51,7 @@ local function main()
     local epoch = 1 
 
     while true do
-        mlp = mlp or nnet.get_net(options)  
-        --print(mlp)
-
+        mlp = mlp or nnet.get_model(options) 
         
         local funs = {  function(x) 
                             return torch.abs(x) * torch.sin(x) 
@@ -63,13 +61,10 @@ local function main()
                         end
                     }
 
-        local mlp_loss = nnet.eval_net(samples, funs, mlp, options)
-        if best_mlp_loss > mlp_loss then
-            best_mlp = mlp
-            best_mlp_loss = mlp_loss
+        if epoch % options.saveEvery == 0 then 
+            nnet.save_network(options, {network=mlp})
         end
-        print(string.format('Epoch %3d: Best MLP: %.4f\tCurrent MLP: %.4f\tSigma: %.3f', epoch, best_mlp_loss, mlp_loss, sigma))
-       
+
         if best_mlp then
             table.insert(funs,
                             function(x) 
@@ -78,9 +73,17 @@ local function main()
         end
 
         nnet.plot(samples, funs, options)
-        --os.execute('sleep 2')
+       
+        local mlp_loss = nnet.eval_net(samples, funs, mlp, options)
+        if best_mlp_loss > mlp_loss then
+            best_mlp = mlp
+            best_mlp_loss = mlp_loss
+        end
+        print(string.format('Epoch %3d: Best MLP: %.4f\tCurrent MLP: %.4f\tSigma: %.3f', epoch, best_mlp_loss, mlp_loss, sigma))
+       
         mlp = mutate(best_mlp, sigma) 
         sigma = sigma_start / (1 + sigma_decay * epoch)
+        
         epoch = epoch + 1
     end
 end
