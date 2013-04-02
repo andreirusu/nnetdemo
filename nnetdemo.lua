@@ -63,7 +63,7 @@ local function main()
     local epoch = 0 
 
     while true do
-        mlp = mlp or nnet.get_net(options)  
+        mlp = mlp or nnet.get_model(options) 
         
         local funs = {  function(x)  
                             return torch.abs(x) * torch.sin(x) 
@@ -75,7 +75,7 @@ local function main()
 
         train_network(mlp, {x=samples, y=samples:clone():apply(funs[1])}, config, options)
         if epoch % options.saveEvery == 0 then 
-            nnet.save_network(options, mlp)
+            nnet.save_network(options, {network=mlp})
         end
 
         if best_mlp then

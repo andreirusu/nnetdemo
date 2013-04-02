@@ -40,6 +40,23 @@ function nnet.parse_arg(arg)
     return cmd:parse(arg)
 end
 
+function nnet.get_model(options)
+    -- get a model; default behavior is to load, otherwise create
+    local ret = {} 
+    if options.network == '' then
+        print('Creating new model...')
+        ret.network = nnet.get_net(options)
+    else
+        print('Loading previously trained model: ' .. options.network)
+        ret = torch.load(options.network)
+    end
+    local model = ret.network
+    print(model)
+    
+    print('Done\n')
+    return model
+end
+
 
 
 function nnet.save_network(options, t)
