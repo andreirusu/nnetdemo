@@ -74,9 +74,6 @@ local function main()
                     }
 
         train_network(mlp, {x=samples, y=samples:clone():apply(funs[1])}, config, options)
-        if epoch % options.saveEvery == 0 then 
-            nnet.save_network(options, {network=mlp})
-        end
 
         if best_mlp then
             table.insert(funs,
@@ -92,6 +89,9 @@ local function main()
         if best_mlp_loss > mlp_loss then
             best_mlp = mlp:clone()
             best_mlp_loss = mlp_loss
+        end
+        if epoch % options.saveEvery == 0 then 
+            nnet.save_network(options, {network=best_mlp})
         end
         print(string.format('Epoch %3d: Best MLP: %.4f\tCurrent MLP: %.4f', epoch, best_mlp_loss, mlp_loss))
         
