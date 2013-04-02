@@ -15,7 +15,7 @@ function nnet.parse_arg(arg)
     cmd:text('Non-linear Regression with Neural Networks - Demo Tool')
     cmd:text()
     cmd:text('Options:')
-    cmd:option('-save',             fname:gsub('.lua',''),  'subdirectory to save/log experiments in')
+    cmd:option('-save',             'mlp',                  'subdirectory to save/log experiments in')
     cmd:option('-network',          '',                     'reload pretrained network')
     cmd:option('-visualize',        false,                  'visualize input data and weights during training')
     cmd:option('-seed',             0,                      'fixed input seed for repeatable experiments')
@@ -24,7 +24,7 @@ function nnet.parse_arg(arg)
     cmd:option('-testSize',         1000,                   'size of one testing epoch which is cached before training')
     cmd:option('-learningRate',     1e-2,                   'learning rate at t=0')
     cmd:option('-weightDecay',      0,                      'weight decay (SGD only)')
-    cmd:option('-learningRateDecay',1e-5,                      'learning rate decay (SGD only)')
+    cmd:option('-learningRateDecay',1e-4,                      'learning rate decay (SGD only)')
     cmd:option('-momentum',         0,                      'momentum (SGD only)')
     cmd:option('-threads',          1,                      'nb of threads to use')
     cmd:option('-maxEpochs',        math.huge,              'maximum number of epochs to train')
@@ -44,7 +44,6 @@ end
 
 
 function nnet.init_experiment(options)
-    print(options)
     -- set random seed
     torch.manualSeed(options.seed)
     -- set number of threads 
@@ -56,7 +55,6 @@ function nnet.init_experiment(options)
     else
     	torch.setdefaulttensortype('torch.FloatTensor')
     end
-
     print(options)
 end
 
