@@ -19,7 +19,7 @@ function train_network(model, samples, config, options)
         local f = 0
         gradParameters:zero()
 
-        for t = 1,options.size do
+        for t = 1,options.szMinibatch do
             local i = shuffle[t]
             local pred = model:forward(inputs[i])
             loss = criterion:forward(pred, targets[i])
