@@ -42,6 +42,18 @@ end
 
 
 
+function nnet.save_network(options, t)
+    -- save/log current net
+    local filename = paths.concat(options.save, 'mlp.net')
+    os.execute('mkdir -p ' .. sys.dirname(filename))
+    if sys.filep(filename) then
+        os.execute('mv ' .. filename .. ' ' .. filename .. '.old')
+    end
+
+    print('<nnetdemo> saving network to '..filename)
+    torch.save(filename, t)
+end
+
 function nnet.init_experiment(options)
     -- set random seed
     torch.manualSeed(options.seed)

@@ -74,8 +74,10 @@ local function main()
                     }
 
         train_network(mlp, {x=samples, y=samples:clone():apply(funs[1])}, config, options)
+        if epoch % options.saveEvery == 0 then 
+            nnet.save_network(options, mlp)
+        end
 
-       
         if best_mlp then
             table.insert(funs,
                             function(x) 
