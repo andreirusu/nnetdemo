@@ -134,7 +134,7 @@ function nnet.plot(samples, funs, options)
 
     local tab = {}
     for _,fun in pairs(funs) do
-        table.insert(tab, {samples, samples:clone():apply(fun), '~'})
+        table.insert(tab, {samples, samples:clone():apply(fun), '+-'})
     end
     gnuplot.plot(tab)
 end
