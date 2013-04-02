@@ -1,20 +1,12 @@
 require 'torch'
 require 'nn'
 require 'nnet'
+require 'sys'
+
 
 local function mutate(mlp_input, sigma)
     local mlp = mlp_input:clone() 
-    --[[
-    local mlp = nn.Sequential()
-    for i = 1,mlp_input:size() do
-        local layer = mlp_input:get(i):clone()
-        if layer.weight and layer.bias then
-            layer.weight    = mlp_input:get(i).weight:clone()
-            layer.bias      = mlp_input:get(i).bias:clone()
-        end
-        mlp:add(layer)  
-    end
-    ]]
+    
     local mutation = function(x)    
         return x + sigma * (torch.randn(1):squeeze())
     end
@@ -40,8 +32,12 @@ local function mutate(mlp_input, sigma)
 end
 
 local function main()
-    local options = nnet.set_options()
-   
+    local options = nnet.parse_arg(arg)
+    
+    options = nnet.set_options(options)
+  
+    nnet.init_experiment(options)
+
     local samples = nnet.get_data(options)
    
 

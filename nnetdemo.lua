@@ -1,15 +1,23 @@
 require 'torch'
 require 'nn'
 require 'nnet'
+require 'util/arg' 
+require 'sys'
+
 
 local function main()
-    local options = nnet.set_options()
-   
+    local options = nnet.parse_arg(arg)
+    
+    options = nnet.set_options(options)
+  
+    nnet.init_experiment(options)
+
     local samples = nnet.get_data(options)
-   
+
 
     local best_mlp 
     local best_mlp_loss = math.huge
+    local mlp
 
     while true do
         local mlp = nnet.get_net(options)  
