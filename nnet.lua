@@ -1,5 +1,6 @@
 require 'torch'
 require 'nn'
+require 'PNL'
 require 'util'
 require 'util/arg'
 require 'sys'
@@ -39,6 +40,27 @@ function nnet.parse_arg(arg)
     cmd:text()
     return cmd:parse(arg)
 end
+
+
+
+function nnet.NL(NL, gradNL, a, b, c, d, e)  
+    a = a or 1  
+    b = b or 1       
+    c = c or 0       
+    d = d or 0       
+    e = e or 0       
+
+    return function(x) 
+                    --return a*(math.tanh(x + b) + math.tanh(x - b)) 
+                    return a * NL(b * x + c) + d * x + e
+                end,
+           function(x) 
+                return a * b * NL(b * x + c) * gradNL(b * x + c) + d 
+            end
+end
+
+
+
 
 function nnet.get_model(options)
     -- get a model; default behavior is to load, otherwise create
@@ -119,7 +141,7 @@ function nnet.get_net(options)
             end
             n_old = v
         else 
-            mlp:add(nn.Tanh())
+            mlp:add(nnd.PNL(options.NL, options.gradNL))
         end
     end
     
