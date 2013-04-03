@@ -1,4 +1,6 @@
+#!/usr/bin/env torch
 require 'torch'
+require 'torch-env'
 require 'nn'
 require 'nnet'
 require 'sys'
