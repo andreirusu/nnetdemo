@@ -34,8 +34,13 @@ function nnet.parse_arg(arg)
     cmd:option('-max', 	             5,            	        'set maximum value of samples on x')
     cmd:option('-cols',             1,            	        'set number of columns in representation')
     cmd:option('-size',             100,            	    'set number of samples')
-    cmd:option('-h1',               10,            	    'set number of units in the first hidden layer')
+    cmd:option('-h1',               10,            	        'set number of units in the first hidden layer')
     cmd:option('-saveEvery',        100,            	    'set number of epochs between saves')
+    cmd:option('-a',                1,            	        'NL parameter a')
+    cmd:option('-b',                1,            	        'NL parameter b')
+    cmd:option('-c',                0,            	        'NL parameter c')
+    cmd:option('-d',                0,            	        'NL parameter d')
+    cmd:option('-e',                0,            	        'NL parameter e')
     
     cmd:text()
     return cmd:parse(arg)
@@ -45,13 +50,7 @@ end
 -- return a Sequential module which
 -- implements a*NL(b*x + c) 
 -- Future: add + d*x + e
-function nnet.NL(nl, sizesLongStorage, params)  
-    a = params[1] or 1  
-    b = params[2] or 1       
-    c = params[3] or 0       
-    d = params[4] or 0       
-    e = params[5] or 0       
-
+function nnet.NL(nl, sizesLongStorage, options)  
     -- construct the module
     local NL = nn.Sequential()
     
@@ -60,9 +59,14 @@ function nnet.NL(nl, sizesLongStorage, params)
     NL:add(nl())
     NL:add(nn.Mul(sizesLongStorage))
 
-    -- set the parameters
-    NL:get(1).weight[1] = b
-    NL:get(4).weight[1] = a
+    function NL:updateStaticParameters(options)
+        -- set the parameters
+        NL:get(1).weight[1] = options.b
+        NL:get(2).bias[1]   = options.c
+        NL:get(4).weight[1] = options.a
+    end
+
+    NL:updateStaticParameters(options)
 
     return NL
 end

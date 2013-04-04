@@ -61,10 +61,9 @@ local function main()
                     weightDecay         = options.weightDecay,
                     learningRateDecay   = options.learningRateDecay }
 
-    options.NL = nnd.PNL(nnet.NL(nn.Tanh,torch.LongStorage({options.h1}), {1,1.5,3}))
+    options.NL = nnd.PNL(nnet.NL(nn.Tanh, torch.LongStorage({options.h1}), options))
     
     local epoch = 0 
-
     while true do
         mlp = mlp or nnet.get_model(options) 
         
