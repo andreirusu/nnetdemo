@@ -25,9 +25,7 @@ local function main()
         --print(mlp)
 
         
-        local funs = {  function(x) 
-                            return torch.abs(x) * torch.sin(x) 
-                        end, 
+        local funs = {  options.objectiveFunction, 
                         function(x) 
                             return mlp:forward(torch.Tensor(1):fill(x)):squeeze() 
                         end

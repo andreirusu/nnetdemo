@@ -15,22 +15,10 @@ local function main()
     
     local samples = nnet.get_data(options)
     local mlp = nnet.get_model(options) 
-   
-    local function updatePNLParameters(mlp, options) 
-        for i = 1,mlp:size(),1 do
-            local layer = mlp:get(i)
-            if torch.typename(layer) == 'nnd.PNL' then
-                print('Updating parameters of: ', layer)
-                layer:updateStaticParameters(options)
-            end
-        end
-    end
+  
+    nnet.updatePNLParameters(mlp, options) 
 
-    updatePNLParameters(mlp, options) 
-
-    local funs = {  function(x)  
-                        return torch.abs(x) * torch.sin(x) 
-                    end, 
+    local funs = {  options.objectiveFunction, 
                     function(x)
                         return mlp:forward(torch.Tensor(1):fill(x)):squeeze() 
                     end

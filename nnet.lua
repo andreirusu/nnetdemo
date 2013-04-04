@@ -39,12 +39,56 @@ function nnet.parse_arg(arg)
     cmd:option('-saveEvery',        100,            	    'set number of epochs between saves')
     cmd:option('-a',                1,            	        'NL parameter a')
     cmd:option('-b',                1,            	        'NL parameter b')
-    cmd:option('-c',                0,            	        'NL parameter c')
-    cmd:option('-d',                0,            	        'NL parameter d')
+    cmd:option('-c',                3,            	        'NL parameter c')
+    cmd:option('-d',                0.001,            	    'NL parameter d')
     cmd:option('-e',                0,            	        'NL parameter e')
-    
+
+    cmd:option('-objectiveFunction', 
+                    'return function(x) return math.abs(x) * math.sin(x) end',            	        
+                    'objective function for non-linear regression')
+
     cmd:text()
     return cmd:parse(arg)
+end
+
+
+
+function nnet.set_options(options)
+    local options = options or {}
+    
+    
+    --options.NL = nnd.PNL(nnet.NL(nn.Tanh, torch.LongStorage({options.h1}), options))
+    options.NL = nnd.PNL(nnet.DoubleNL(nn.Tanh, torch.LongStorage({options.h1}), options,  {a = options.a,  
+                                                                                            b = options.b, 
+                                                                                            c = -options.c, 
+                                                                                            d = options.d, 
+                                                                                            e = options.e } ))
+    
+       
+    if type(options.objectiveFunction) == 'string' then
+        print('Loading objective function from string: ', options.objectiveFunction)
+        options.objectiveFunction = loadstring(options.objectiveFunction)()
+        assert(options.objectiveFunction, 'Error in loading objective function string...')
+    end
+
+
+
+    options.n_units = {options.cols, options.h1,  0, 1}
+
+    return options
+end
+
+
+
+
+function nnet.updatePNLParameters(mlp, options) 
+    for i = 1,mlp:size(),1 do
+        local layer = mlp:get(i)
+        if torch.typename(layer) == 'nnd.PNL' then
+            print('Updating parameters of: ', layer)
+            layer:updateStaticParameters(options)
+        end
+    end
 end
 
 
@@ -86,6 +130,17 @@ function nnet.NL(nl, sizesLongStorage, options)
 end
 
 --return a*(math.tanh(x + b) + math.tanh(x - b)) 
+
+function nnet.DoubleNL(nl, sizesLongStorage, options1, options2)
+    local p = nn.ConcatTable()
+    p:add(nnet.NL(nl, sizesLongStorage, options1))
+    p:add(nnet.NL(nl, sizesLongStorage, options2))
+
+    local DoubleNL = nn.Sequential()
+    DoubleNL:add(p)
+    DoubleNL:add(nn.CAddTable())
+    return DoubleNL
+end
 
 function nnet.get_net(options)
     local mlp = nn.Sequential()
@@ -161,17 +216,6 @@ function nnet.init_experiment(options)
     	torch.setdefaulttensortype('torch.FloatTensor')
     end
     print(options)
-end
-
-
-
-function nnet.set_options(options)
-    local options = options or {}
-
-
-    options.n_units = {options.cols, options.h1,  0, 1}
-
-    return options
 end
 
 

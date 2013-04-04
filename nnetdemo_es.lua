@@ -55,9 +55,7 @@ local function main()
     while true do
         mlp = mlp or nnet.get_model(options) 
         
-        local funs = {  function(x) 
-                            return torch.abs(x) * torch.sin(x) 
-                        end, 
+        local funs = {  options.objectiveFunction, 
                         function(x) 
                             return mlp:forward(torch.Tensor(1):fill(x)):squeeze() 
                         end
