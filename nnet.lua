@@ -48,22 +48,35 @@ end
 
 
 -- return a Sequential module which
--- implements a*NL(b*x + c) 
--- Future: add + d*x + e
+-- implements a*NL(b*x + c) + d*x + e
 function nnet.NL(nl, sizesLongStorage, options)  
     -- construct the module
-    local NL = nn.Sequential()
     
-    NL:add(nn.Mul(sizesLongStorage))
-    NL:add(nn.Add(sizesLongStorage, c))
-    NL:add(nl())
-    NL:add(nn.Mul(sizesLongStorage))
+    local Seq1 = nn.Sequential()
+    Seq1:add(nn.Mul(sizesLongStorage))
+    Seq1:add(nn.Add(sizesLongStorage, c))
+    Seq1:add(nl())
+    Seq1:add(nn.Mul(sizesLongStorage))
+
+    local Seq2 = nn.Sequential()
+    Seq2:add(nn.Mul(sizesLongStorage))
+    Seq2:add(nn.Add(sizesLongStorage, e))
+
+    local p = nn.ConcatTable()
+    p:add(Seq1)
+    p:add(Seq2)
+
+    local NL = nn.Sequential()
+    NL:add(p)
+    NL:add(nn.CAddTable())
 
     function NL:updateStaticParameters(options)
         -- set the parameters
-        NL:get(1).weight[1] = options.b
-        NL:get(2).bias[1]   = options.c
-        NL:get(4).weight[1] = options.a
+        NL:get(1):get(1):get(1).weight[1] = options.b
+        NL:get(1):get(1):get(2).bias[1]   = options.c
+        NL:get(1):get(1):get(4).weight[1] = options.a
+        NL:get(1):get(2):get(1).weight[1] = options.d
+        NL:get(1):get(2):get(2).bias[1]   = options.e
     end
 
     NL:updateStaticParameters(options)
