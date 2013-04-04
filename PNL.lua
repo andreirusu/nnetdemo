@@ -12,19 +12,18 @@ require 'nnd'
 
 local PNL, parent = torch.class('nnd.PNL', 'nn.Module')
 
-function PNL:__init(NL, gradNL)
+function PNL:__init(NL)
     parent.__init(self)
     self.NL = NL
-    self.gradNL = gradNL
 end
 
 function PNL:updateOutput(input)
-    self.output:typeAs(input):resizeAs(input):copy(input):apply(self.NL)
+    self.output:typeAs(input):resizeAs(input):copy(self.NL:forward(input))
     return self.output
 end
 
 function PNL:updateGradInput(input, gradOutput)
-    self.gradInput:typeAs(input):resizeAs(input):copy(input):apply(self.gradNL):cmul(gradOutput)
+    self.gradInput:typeAs(input):resizeAs(input):copy(self.NL:backward(input, torch.ones(input:size())):cmul(gradOutput))
     return self.gradInput
 end
 

@@ -61,22 +61,7 @@ local function main()
                     weightDecay         = options.weightDecay,
                     learningRateDecay   = options.learningRateDecay }
 
-
-    --[[
-    x = torch.linspace(-15, 15)
-
-    gnuplot.plot({{x,x:clone():apply(NL(1,1)), '+-'}, 
-                    {x,x:clone():apply(NL(1,2)), '+-'}, 
-                    {x,x:clone():apply(NL(1,3)), '+-'}, 
-                    {x,x:clone():apply(NL(1,4)), '+-'}, 
-                    {x,x:clone():apply(NL(1,5)), '+-'}})
-    --]]
-
-
-    options.NL, options.gradNL = nnet.NL(math.tanh, 
-                                            function(x) 
-                                                return 1/(1e-50 + math.pow(math.cosh(x),2)) 
-                                            end)
+    options.NL = nnd.PNL(nnet.NL(nn.Tanh,torch.LongStorage({options.h1}), {1,1.5,3}))
     
     local epoch = 0 
 

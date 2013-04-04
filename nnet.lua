@@ -42,24 +42,61 @@ function nnet.parse_arg(arg)
 end
 
 
+-- return a Sequential module which
+-- implements a*NL(b*x + c) 
+-- Future: add + d*x + e
+function nnet.NL(nl, sizesLongStorage, params)  
+    a = params[1] or 1  
+    b = params[2] or 1       
+    c = params[3] or 0       
+    d = params[4] or 0       
+    e = params[5] or 0       
 
-function nnet.NL(NL, gradNL, a, b, c, d, e)  
-    a = a or 1  
-    b = b or 1       
-    c = c or 0       
-    d = d or 0       
-    e = e or 0       
+    -- construct the module
+    local NL = nn.Sequential()
+    
+    NL:add(nn.Mul(sizesLongStorage))
+    NL:add(nn.Add(sizesLongStorage, c))
+    NL:add(nl())
+    NL:add(nn.Mul(sizesLongStorage))
 
-    return function(x) 
-                    --return a*(math.tanh(x + b) + math.tanh(x - b)) 
-                    return a * NL(b * x + c) + d * x + e
-                end,
-           function(x) 
-                return a * b * NL(b * x + c) * gradNL(b * x + c) + d 
-            end
+    -- set the parameters
+    NL:get(1).weight[1] = b
+    NL:get(4).weight[1] = a
+
+    return NL
 end
 
+--return a*(math.tanh(x + b) + math.tanh(x - b)) 
 
+function nnet.get_net(options)
+    local mlp = nn.Sequential()
+
+    local init_weight = function(x) 
+        return torch.randn(1):mul(1):squeeze()
+    end
+
+    local init_bias = function(x) 
+        return torch.randn(1):mul(1):squeeze()
+    end
+
+    local n_old 
+    for _, v in pairs(options.n_units) do
+        if v ~= 0 then
+            if n_old then 
+                local lin = nn.Linear(n_old, v)
+                lin.weight:apply(init_weight)
+                lin.bias:apply(init_bias)
+                mlp:add(lin)
+            end
+            n_old = v
+        else 
+            mlp:add(options.NL)
+        end
+    end
+    
+    return mlp
+end
 
 
 function nnet.get_model(options)
@@ -117,35 +154,6 @@ function nnet.set_options(options)
     options.n_units = {options.cols, options.h1,  0, 1}
 
     return options
-end
-
-function nnet.get_net(options)
-    local mlp = nn.Sequential()
-
-    local init_weight = function(x) 
-        return torch.randn(1):mul(1):squeeze()
-    end
-
-    local init_bias = function(x) 
-        return torch.randn(1):mul(1):squeeze()
-    end
-
-    local n_old 
-    for _, v in pairs(options.n_units) do
-        if v ~= 0 then
-            if n_old then 
-                local lin = nn.Linear(n_old, v)
-                lin.weight:apply(init_weight)
-                lin.bias:apply(init_bias)
-                mlp:add(lin)
-            end
-            n_old = v
-        else 
-            mlp:add(nnd.PNL(options.NL, options.gradNL))
-        end
-    end
-    
-    return mlp
 end
 
 
