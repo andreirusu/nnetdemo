@@ -9,6 +9,7 @@ require 'sys'
 nnet = {}
 
 
+
 function nnet.parse_arg(arg)
     local dname, fname = sys.fpath()
     local cmd = torch.CmdLine()
@@ -21,7 +22,7 @@ function nnet.parse_arg(arg)
     cmd:option('-visualize',        false,                  'visualize input data and weights during training')
     cmd:option('-seed',             0,                      'fixed input seed for repeatable experiments')
     cmd:option('-szMinibatch',      10,                     'mini-batch size (1 = pure stochastic)')
-    cmd:option('-learningRate',     1,                      'learning rate at t=0')
+    cmd:option('-learningRate',     0.1,                      'learning rate at t=0')
     cmd:option('-weightDecay',      0,                      'weight decay (SGD only)')
     cmd:option('-learningRateDecay',1e-3,                   'learning rate decay (SGD only)')
     cmd:option('-momentum',         0,                      'momentum (SGD only)')
