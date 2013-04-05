@@ -56,16 +56,18 @@ end
 function nnet.set_options(options)
     local options = options or {}
     
-    
     --options.NL = nnd.PNL(nnet.NL(nn.Tanh, torch.LongStorage({options.h1}), options))
-    options.NL = nnd.PNL(nnet.DoubleNL(nn.Tanh, torch.LongStorage({options.h1}), options,  {a = options.a,  
-                                                                                            b = options.b, 
-                                                                                            c = -options.c, 
-                                                                                            d = options.d, 
-                                                                                            e = options.e } ))
+    options.NL = nnd.PNL(nnet.DoubleNL(nn.Tanh, 
+                    torch.LongStorage({options.h1}), 
+                    options,  
+                    {a = options.a,  
+                     b = options.b, 
+                     c = -options.c, 
+                     d = options.d, 
+                     e = options.e } ))
+
     print(options.obj, type(options.obj))
     nnet.eval_obj(options)
-
 
     options.n_units = {options.cols, options.h1,  0, 1}
 
@@ -194,13 +196,15 @@ end
 
 
 
-function nnet.save_network(options, t)
+function nnet.save_network(t, options)
     -- save/log current net
     local filename = paths.concat(options.save, 'mlp.net')
     os.execute('mkdir -p ' .. sys.dirname(filename))
     if sys.filep(filename) then
         os.execute('mv ' .. filename .. ' ' .. filename .. '.old')
     end
+    -- make sure options have been saved with the mlp
+    t.options = options
 
     print('<nnetdemo> saving network to '..filename)
     torch.save(filename, t)

@@ -14,12 +14,13 @@ local function main()
     nnet.init_experiment(options)
 
     local samples = nnet.get_data(options)
-
+   
 
     local best_mlp 
     local best_mlp_loss = math.huge
     local mlp
-
+    
+    local epoch = 0 
     while true do
         local mlp = nnet.get_net(options)  
         --print(mlp)
@@ -44,9 +45,12 @@ local function main()
                                 return best_mlp:forward(torch.Tensor(1):fill(x)):squeeze() 
                             end)
         end
-
+        if epoch % options.saveEvery == 0 then 
+            nnet.save_network({network=best_mlp}, options)
+        end
         nnet.plot(samples, funs, options)
-        --os.execute('sleep 2')
+         
+        epoch = epoch + 1
     end
 end
 
