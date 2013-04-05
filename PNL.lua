@@ -27,9 +27,13 @@ function PNL:updateGradInput(input, gradOutput)
     return self.gradInput
 end
 
-function PNL:updateStaticParameters(options)
-    if torch.typename(self.NL) == 'nn.Sequential' and self.NL.updateStaticParameters then
-        print('Found compatible NL: ', self.NL)
+function PNL:updateStaticParameters(options, suppressPrinting)
+    if torch.typename(self.NL) == 'nn.Sequential' 
+        and self.NL.updateStaticParameters 
+            then
+        if not suppressPrinting then
+            print('Found compatible NL: ', self.NL)
+        end
         self.NL:updateStaticParameters(options)
     end
 end

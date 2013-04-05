@@ -9,15 +9,14 @@ require 'optim'
 
 
 local function main()
-    local options = nnet.parse_arg(arg)
+    local options = nnet.parse_arg(arg, true)
+
     options = nnet.set_options(options)
     nnet.init_experiment(options)
     
     local samples = nnet.get_data(options)
     local mlp = nnet.get_model(options) 
    
-    
-    nnet.updatePNLParameters(mlp, options) 
 
     local funs = {  options.objectiveFunction, 
                     function(x)
@@ -25,10 +24,7 @@ local function main()
                     end
                 }
 
-    --local mlp_loss = nnet.eval_net(samples, funs, mlp, options)
-       
     nnet.plot(samples, funs, options)
-    --print(string.format('Current MLP: %.4f', mlp_loss))
     
 end
 

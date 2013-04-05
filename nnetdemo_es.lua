@@ -34,7 +34,7 @@ local function mutate(mlp_input, sigma)
 end
 
 local function main()
-    local options = nnet.parse_arg(arg)
+    local options = nnet.parse_arg(arg, true)
     
     options = nnet.set_options(options)
   

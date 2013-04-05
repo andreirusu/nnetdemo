@@ -10,7 +10,7 @@ nnet = {}
 
 
 
-function nnet.parse_arg(arg)
+function nnet.parse_arg(arg, initNLparams)
     local dname, fname = sys.fpath()
     local cmd = torch.CmdLine()
     cmd:text()
@@ -37,12 +37,20 @@ function nnet.parse_arg(arg)
     cmd:option('-size',             100,            	    'set number of samples')
     cmd:option('-h1',               10,            	        'set number of units in the first hidden layer')
     cmd:option('-saveEvery',        100,            	    'set number of epochs between saves')
-    cmd:option('-a',                1,            	        'NL parameter a')
-    cmd:option('-b',                1,            	        'NL parameter b')
-    cmd:option('-c',                3,            	        'NL parameter c')
-    cmd:option('-d',                0.001,            	    'NL parameter d')
-    cmd:option('-e',                0,            	        'NL parameter e')
-
+    
+    if initNLparams then
+        cmd:option('-a',                1,            	        'NL parameter a')
+        cmd:option('-b',                1,            	        'NL parameter b')
+        cmd:option('-c',                0,            	        'NL parameter c')
+        cmd:option('-d',                0,              	    'NL parameter d')
+        cmd:option('-e',                0,            	        'NL parameter e')
+    else
+        cmd:option('-a',                math.huge,     	        'NL parameter a')
+        cmd:option('-b',                math.huge,     	        'NL parameter b')
+        cmd:option('-c',                math.huge,     	        'NL parameter c')
+        cmd:option('-d',                math.huge,         	    'NL parameter d')
+        cmd:option('-e',                math.huge,         	    'NL parameter e')
+    end
     cmd:option('-obj', 
                     'return function(x) return math.abs(x) * math.sin(x) end',            	        
                     'objective function for non-linear regression')
@@ -55,20 +63,7 @@ end
 
 function nnet.set_options(options)
     local options = options or {}
-    
-    --options.NL = nnd.PNL(nnet.NL(nn.Tanh, torch.LongStorage({options.h1}), options))
-    options.NL = nnd.PNL(nnet.DoubleNL(nn.Tanh, 
-                    torch.LongStorage({options.h1}), 
-                    options,  
-                    {a = options.a,  
-                     b = options.b, 
-                     c = -options.c, 
-                     d = options.d, 
-                     e = options.e } ))
-
-    print(options.obj, type(options.obj))
-    nnet.eval_obj(options)
-
+     
     options.n_units = {options.cols, options.h1,  0, 1}
 
     return options
@@ -77,12 +72,14 @@ end
 
 
 
-function nnet.updatePNLParameters(mlp, options) 
+function nnet.updatePNLParameters(mlp, options, suppressPrinting) 
     for i = 1,mlp:size(),1 do
         local layer = mlp:get(i)
         if torch.typename(layer) == 'nnd.PNL' then
-            print('Updating parameters of: ', layer)
-            layer:updateStaticParameters(options)
+            if not suppressPrinting then
+                print('Updating parameters of: ', layer)
+            end
+            layer:updateStaticParameters(options, suppressPrinting)
         end
     end
 end
@@ -113,11 +110,11 @@ function nnet.NL(nl, sizesLongStorage, options)
 
     function NL:updateStaticParameters(options)
         -- set the parameters
-        NL:get(1):get(1):get(1).weight[1] = options.b
-        NL:get(1):get(1):get(2).bias[1]   = options.c
-        NL:get(1):get(1):get(4).weight[1] = options.a
-        NL:get(1):get(2):get(1).weight[1] = options.d
-        NL:get(1):get(2):get(2).bias[1]   = options.e
+        self:get(1):get(1):get(1).weight[1] = options.b
+        self:get(1):get(1):get(2).bias[1]   = options.c
+        self:get(1):get(1):get(4).weight[1] = options.a
+        self:get(1):get(2):get(1).weight[1] = options.d
+        self:get(1):get(2):get(2).bias[1]   = options.e
     end
 
     NL:updateStaticParameters(options)
@@ -134,10 +131,30 @@ function nnet.DoubleNL(nl, sizesLongStorage, options1, options2)
     local DoubleNL = nn.Sequential()
     DoubleNL:add(p)
     DoubleNL:add(nn.CAddTable())
+
+    function DoubleNL:updateStaticParameters(options1, options2)
+        self:get(1):get(1):updateStaticParameters(options1)
+        self:get(1):get(2):updateStaticParameters(options2)
+    end
+
+    DoubleNL:updateStaticParameters(options1, options2)
+
     return DoubleNL
 end
 
 function nnet.get_net(options)
+
+    --[[
+    options.NL = nnd.PNL(nnet.DoubleNL(nn.Tanh, 
+                    torch.LongStorage({options.h1}), 
+                    options,  
+                    {a = options.a,  
+                     b = options.b, 
+                     c = -options.c, 
+                     d = options.d, 
+                     e = options.e } ))
+    --]]
+
     local mlp = nn.Sequential()
 
     local init_weight = function(x) 
@@ -167,6 +184,9 @@ function nnet.get_net(options)
 end
 
 function nnet.eval_obj(options)
+    if type(options.objectiveFunction) == 'function' then
+        return
+    end
     assert(type(options.obj) == 'string', 'Objective function string error...')
 
     print('Loading objective function from string: ', options.obj)
@@ -174,23 +194,61 @@ function nnet.eval_obj(options)
     assert(options.objectiveFunction, 'Error in loading objective function string...')
 end 
 
-function nnet.get_model(options)
+
+
+
+function nnet.get_model(options, suppressPrinting)
     -- get a model; default behavior is to load, otherwise create
     local ret = {} 
     if not options.network or options.network == '' then
-        print('Creating new model...')
+        if not suppressPrinting then
+            print('Creating new model...')   
+        end
+        options.NL = nnd.PNL(nnet.NL(nn.Tanh, torch.LongStorage({options.h1}), options))
         ret.network = nnet.get_net(options)
     else
-        print('Loading previously trained model: ' .. options.network)
+        if not suppressPrinting then
+            print('Loading previously trained model: ' .. options.network)
+        end
         ret = torch.load(options.network)
+        
+        -- always load objective function from saved net file
         options.obj = ret.options.obj
+
+        -- load NL parameters from saved net file only if undefined in command line
+        if options.a == math.huge then
+            options.a = ret.options.a
+        end
+
+        if options.b == math.huge then
+            options.b = ret.options.b
+        end
+        
+        if options.c == math.huge then
+            options.c = ret.options.c
+        end
+        
+        if options.d == math.huge then
+            options.d = ret.options.d
+        end
+        
+        if options.e == math.huge then
+            options.e = ret.options.e
+        end
+        
+        options.NL = nnd.PNL(nnet.NL(nn.Tanh, torch.LongStorage({options.h1}), options))
     end
     local model = ret.network
     nnet.eval_obj(options)
 
-    print(model)
     
-    print('Done\n')
+    nnet.updatePNLParameters(model, options, suppressPrinting) 
+
+    if not suppressPrinting then
+        print(options)
+        print(model)
+        print('Done')
+    end
     return model
 end
 
@@ -222,7 +280,6 @@ function nnet.init_experiment(options)
     else
     	torch.setdefaulttensortype('torch.FloatTensor')
     end
-    print(options)
 end
 
 

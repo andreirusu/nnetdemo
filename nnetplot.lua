@@ -16,7 +16,6 @@ local function main()
     local samples = nnet.get_data(options)
     local mlp = nnet.get_model(options) 
   
-    nnet.updatePNLParameters(mlp, options) 
 
     local funs = {  options.objectiveFunction, 
                     function(x)
