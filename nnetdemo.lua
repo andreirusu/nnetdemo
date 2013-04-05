@@ -88,7 +88,7 @@ local function main()
             best_mlp_loss = mlp_loss
         end
         if epoch % options.saveEvery == 0 then 
-            nnet.save_network(options, {network=best_mlp})
+            nnet.save_network(options, {network=best_mlp, options=options})
         end
         print(string.format('Epoch %3d: Best MLP: %.4f\tCurrent MLP: %.4f', epoch, best_mlp_loss, mlp_loss))
         

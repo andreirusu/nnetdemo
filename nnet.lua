@@ -43,7 +43,7 @@ function nnet.parse_arg(arg)
     cmd:option('-d',                0.001,            	    'NL parameter d')
     cmd:option('-e',                0,            	        'NL parameter e')
 
-    cmd:option('-objectiveFunction', 
+    cmd:option('-obj', 
                     'return function(x) return math.abs(x) * math.sin(x) end',            	        
                     'objective function for non-linear regression')
 
@@ -63,14 +63,8 @@ function nnet.set_options(options)
                                                                                             c = -options.c, 
                                                                                             d = options.d, 
                                                                                             e = options.e } ))
-    
-       
-    if type(options.objectiveFunction) == 'string' then
-        print('Loading objective function from string: ', options.objectiveFunction)
-        options.objectiveFunction = loadstring(options.objectiveFunction)()
-        assert(options.objectiveFunction, 'Error in loading objective function string...')
-    end
-
+    print(options.obj, type(options.obj))
+    nnet.eval_obj(options)
 
 
     options.n_units = {options.cols, options.h1,  0, 1}
@@ -129,8 +123,7 @@ function nnet.NL(nl, sizesLongStorage, options)
     return NL
 end
 
---return a*(math.tanh(x + b) + math.tanh(x - b)) 
-
+--return (a1*tanh(b1*x + c1)  + d1*x + e1) + (a2*tanh(b2*x + c2) + d2*x + e2)
 function nnet.DoubleNL(nl, sizesLongStorage, options1, options2)
     local p = nn.ConcatTable()
     p:add(nnet.NL(nl, sizesLongStorage, options1))
@@ -171,18 +164,28 @@ function nnet.get_net(options)
     return mlp
 end
 
+function nnet.eval_obj(options)
+    assert(type(options.obj) == 'string', 'Objective function string error...')
+
+    print('Loading objective function from string: ', options.obj)
+    options.objectiveFunction = loadstring(options.obj)()
+    assert(options.objectiveFunction, 'Error in loading objective function string...')
+end 
 
 function nnet.get_model(options)
     -- get a model; default behavior is to load, otherwise create
     local ret = {} 
-    if options.network == '' then
+    if not options.network or options.network == '' then
         print('Creating new model...')
         ret.network = nnet.get_net(options)
     else
         print('Loading previously trained model: ' .. options.network)
         ret = torch.load(options.network)
+        options.obj = ret.options.obj
     end
     local model = ret.network
+    nnet.eval_obj(options)
+
     print(model)
     
     print('Done\n')
