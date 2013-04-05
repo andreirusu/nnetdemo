@@ -79,7 +79,6 @@ local function main()
                             end)
         end
 
-        nnet.plot(samples, funs, options)
 
 
         local mlp_loss = nnet.eval_net(samples, funs, mlp, options)
@@ -90,8 +89,10 @@ local function main()
         if epoch % options.saveEvery == 0 then 
             nnet.save_network({network=best_mlp}, options)
         end
-        print(string.format('Epoch %3d: Best MLP: %.4f\tCurrent MLP: %.4f', epoch, best_mlp_loss, mlp_loss))
-        
+        if epoch % options.reportEvery == 0 then 
+            nnet.plot(samples, funs, options)
+            print(string.format('Epoch %3d: Best MLP: %.4f\tCurrent MLP: %.4f', epoch, best_mlp_loss, mlp_loss))
+        end
         epoch = epoch + 1
     end
 end

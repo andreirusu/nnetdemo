@@ -36,7 +36,8 @@ function nnet.parse_arg(arg, initNLparams)
     cmd:option('-cols',             1,            	        'set number of columns in representation')
     cmd:option('-size',             100,            	    'set number of samples')
     cmd:option('-h1',               10,            	        'set number of units in the first hidden layer')
-    cmd:option('-saveEvery',        100,            	    'set number of epochs between saves')
+    cmd:option('-saveEvery',        1000,            	    'set number of epochs between saves')
+    cmd:option('-reportEvery',      100,            	    'set number of epochs between saves')
     
     if initNLparams then
         cmd:option('-a',                1,            	        'NL parameter a')
@@ -284,6 +285,9 @@ end
 
 
 function nnet.plot(samples, funs, options)
+    if options.noplot then
+        return
+    end
     if type(funs) == 'function' then
         funs = {funs}
     end
