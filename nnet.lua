@@ -38,6 +38,10 @@ function nnet.parse_arg(arg, initNLparams)
     cmd:option('-h1',               10,            	        'set number of units in the first hidden layer')
     cmd:option('-saveEvery',        1000,            	    'set number of epochs between saves')
     cmd:option('-reportEvery',      100,            	    'set number of epochs between saves')
+    cmd:option('-meanWeight',       0,            	        'mean value of initial gaussian weights')
+    cmd:option('-meanBias',         0,            	        'mean value of initial gaussian biases')
+    cmd:option('-stdWeight',        1,            	        'standard deviation of initial gaussian weights')
+    cmd:option('-stdBias',          1,            	        'standard deviation of initial gaussian biases')
     
     if initNLparams then
         cmd:option('-a',                1,            	        'NL parameter a')
@@ -159,11 +163,11 @@ function nnet.get_net(options)
     local mlp = nn.Sequential()
 
     local init_weight = function(x) 
-        return torch.randn(1):mul(1):squeeze()
+        return torch.randn(1):mul(options.stdWeight):add(options.meanWeight):squeeze()
     end
 
     local init_bias = function(x) 
-        return torch.randn(1):mul(1):squeeze()
+        return torch.randn(1):mul(options.stdBias):add(options.meanBias):squeeze()
     end
 
     local n_old 
