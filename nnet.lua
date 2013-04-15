@@ -1,5 +1,6 @@
 require 'torch'
 require 'nn'
+require 'nnd'
 require 'PNL'
 require 'util'
 require 'util/arg'
@@ -22,7 +23,7 @@ function nnet.parse_arg(arg, initNLparams)
     cmd:option('-visualize',        false,                  'visualize input data and weights during training')
     cmd:option('-seed',             0,                      'fixed input seed for repeatable experiments')
     cmd:option('-szMinibatch',      10,                     'mini-batch size (1 = pure stochastic)')
-    cmd:option('-learningRate',     0.1,                      'learning rate at t=0')
+    cmd:option('-learningRate',     0.1,                    'learning rate at t=0')
     cmd:option('-weightDecay',      0,                      'weight decay (SGD only)')
     cmd:option('-learningRateDecay',1e-3,                   'learning rate decay (SGD only)')
     cmd:option('-momentum',         0,                      'momentum (SGD only)')
@@ -32,7 +33,7 @@ function nnet.parse_arg(arg, initNLparams)
     cmd:option('-noplot',           false,                  'disable plotting')
     cmd:option('-double', 	        true,            	    'set default tensor type to double')
     cmd:option('-min', 	            -5,            	        'set minimum value of samples on x')
-    cmd:option('-max', 	             5,            	        'set maximum value of samples on x')
+    cmd:option('-max', 	            5,            	        'set maximum value of samples on x')
     cmd:option('-cols',             1,            	        'set number of columns in representation')
     cmd:option('-size',             100,            	    'set number of samples')
     cmd:option('-h1',               10,            	        'set number of units in the first hidden layer')
@@ -57,19 +58,28 @@ function nnet.parse_arg(arg, initNLparams)
         cmd:option('-e',                math.huge,         	    'NL parameter e')
     end
     cmd:option('-obj', 
-                    'return function(x) return math.abs(x) * math.sin(x) end',            	        
+                    'function(x) return math.abs(x) * math.sin(x) end',            	        
                     'objective function for non-linear regression')
+    cmd:option('-nl', 
+                    'nn.Tanh', 
+                    'non-linearity Torch nn layer')
+
 
     cmd:text()
     return cmd:parse(arg)
 end
 
 
+function nnet.wrapFunction(str)
+    return loadstring('return '..str)()
+end
 
 function nnet.set_options(options)
     local options = options or {}
      
     options.n_units = {options.cols, options.h1,  0, 1}
+
+    options.nl = nnet.wrapFunction(options.nl)
 
     return options
 end
@@ -188,6 +198,7 @@ function nnet.get_net(options)
     return mlp
 end
 
+
 function nnet.eval_obj(options)
     if type(options.objectiveFunction) == 'function' then
         return
@@ -195,7 +206,7 @@ function nnet.eval_obj(options)
     assert(type(options.obj) == 'string', 'Objective function string error...')
 
     print('Loading objective function from string: ', options.obj)
-    options.objectiveFunction = loadstring(options.obj)()
+    options.objectiveFunction = nnet.wrapFunction(options.obj)
     assert(options.objectiveFunction, 'Error in loading objective function string...')
 end 
 
@@ -209,7 +220,7 @@ function nnet.get_model(options, suppressPrinting)
         if not suppressPrinting then
             print('Creating new model...')   
         end
-        options.NL = nnd.PNL(nnet.NL(nn.Tanh, torch.LongStorage({options.h1}), options))
+        options.NL = nnd.PNL(nnet.NL(options.nl, torch.LongStorage({options.h1}), options))
         ret.network = nnet.get_net(options)
     else
         if not suppressPrinting then
@@ -258,7 +269,6 @@ function nnet.get_model(options, suppressPrinting)
 end
 
 
-
 function nnet.save_network(t, options)
     -- save/log current net
     local filename = paths.concat(options.save, 'mlp.net')
@@ -272,6 +282,7 @@ function nnet.save_network(t, options)
     print('<nnetdemo> saving network to '..filename)
     torch.save(filename, t)
 end
+
 
 function nnet.init_experiment(options)
     -- set random seed
