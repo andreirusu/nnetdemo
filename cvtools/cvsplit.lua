@@ -53,6 +53,8 @@ function cv.KFolds(_ds, options)
             ds_table.data=perm_data:narrow(1, 1, fold_size):clone() 
             if perm_class then ds_table.class=perm_class:narrow(1, 1, fold_size):clone() end 
             local fold_ds = dataset.TableDataset(ds_table)
+            fold_ds.source = options.dataset
+            fold_ds.perm = perm
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'test.th7'), fold_ds)
         end
@@ -65,6 +67,8 @@ function cv.KFolds(_ds, options)
                 ds_table.class=perm_class:narrow(1, fold_size+1, perm_class:size(1) - fold_size):clone() 
             end 
             local fold_ds = dataset.TableDataset(ds_table)
+            fold_ds.source = options.dataset
+            fold_ds.perm = perm
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'train.th7'), fold_ds)
         end 
@@ -79,6 +83,8 @@ function cv.KFolds(_ds, options)
             ds_table.data=perm_data:narrow(1, (i-1)*fold_size+1, fold_size):clone() 
             if perm_class then ds_table.class=perm_class:narrow(1, (i-1)*fold_size+1, fold_size):clone() end 
             local fold_ds = dataset.TableDataset(ds_table)
+            fold_ds.source = options.dataset
+            fold_ds.perm = perm
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'test.th7'), fold_ds)
         end
@@ -94,6 +100,8 @@ function cv.KFolds(_ds, options)
             
             end 
             local fold_ds = dataset.TableDataset(ds_table)
+            fold_ds.source = options.dataset
+            fold_ds.perm = perm
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'train.th7'), fold_ds)
         end 
@@ -108,6 +116,8 @@ function cv.KFolds(_ds, options)
             ds_table.data=perm_data:narrow(1, (i-1)*fold_size+1, perm_data:size(1) - (i-1)*fold_size):clone() 
             if perm_class then ds_table.class=perm_class:narrow(1, (i-1)*fold_size+1, perm_class:size(1) - (i-1)*fold_size):clone() end 
             local fold_ds = dataset.TableDataset(ds_table)
+            fold_ds.source = options.dataset
+            fold_ds.perm = perm
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'test.th7'), fold_ds)
         end
@@ -120,6 +130,8 @@ function cv.KFolds(_ds, options)
                 ds_table.class=perm_class:narrow(1, 1, (i-1)*fold_size):clone() 
             end 
             local fold_ds = dataset.TableDataset(ds_table)
+            fold_ds.source = options.dataset
+            fold_ds.perm = perm
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'train.th7'), fold_ds)
         end 
