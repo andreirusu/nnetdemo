@@ -2,7 +2,7 @@
 require 'torch'
 require 'torch-env'
 require 'nn'
-require 'nnet'
+require 'nnet_regression'
 require 'sys'
 require 'optim'
 

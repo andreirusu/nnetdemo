@@ -1,7 +1,7 @@
 #!/usr/bin/env torch
 require 'torch'
 require 'nn'
-require 'nnet'
+require 'nnet_regression'
 require 'util/arg' 
 require 'sys'
 
