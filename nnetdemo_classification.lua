@@ -54,7 +54,11 @@ local function main()
     local samples = nnet.get_data(options)
 
     print(samples)
-   
+  
+
+    local mlp = nnet.get_model(options) 
+
+
     --[[
 
     local best_mlp 
@@ -67,8 +71,7 @@ local function main()
                     learningRateDecay   = options.learningRateDecay }
     local epoch = 0 
     while true do
-        mlp = mlp or nnet.get_model(options) 
-        
+                
         local funs = {  options.objectiveFunction, 
                         function(x) 
                             return mlp:forward(torch.Tensor(1):fill(x)):squeeze() 

@@ -23,7 +23,8 @@ function nnet.parse_arg(arg, initNLparams)
     cmd:text('Options:')
     cmd:option('-save',             'demo_classification',  'subdirectory to save/log experiments in')
     cmd:option('-dataset',          '',                     'input dataset')
-    cmd:option('-nclasses',         '',                     'number of classes')
+    cmd:option('-input',            0,                      'number of input features')
+    cmd:option('-nclasses',         0,                     'number of classes')
     cmd:option('-network',          '',                     'reload pretrained network')
     cmd:option('-visualize',        false,                  'visualize input data and weights during training')
     cmd:option('-seed',             0,                      'fixed input seed for repeatable experiments')
@@ -60,7 +61,7 @@ function nnet.parse_arg(arg, initNLparams)
     end
     cmd:option('-nl', 
                     'nn.Tanh', 
-                    'non-linearity Torch nn layer')
+                    'non-linearity layer')
 
 
     cmd:text()
@@ -75,7 +76,7 @@ end
 function nnet.set_options(options)
     local options = options or {}
      
-    options.n_units = {100, 100, 100, 1}
+    options.n_units = {options.input, 100, 0, 100, 0, options.nclasses}
 
     options.nl = nnet.wrapFunction(options.nl)
 
@@ -95,64 +96,6 @@ function nnet.updatePNLParameters(mlp, options, suppressPrinting)
             layer:updateStaticParameters(options, suppressPrinting)
         end
     end
-end
-
-
--- return a Sequential module which
--- implements a*NL(b*x + c) + d*x + e
-function nnet.NL(nl, sizesLongStorage, options)  
-    -- construct the module
-    
-    local Seq1 = nn.Sequential()
-    Seq1:add(nn.Mul(sizesLongStorage))
-    Seq1:add(nn.Add(sizesLongStorage, c))
-    Seq1:add(nl())
-    Seq1:add(nn.Mul(sizesLongStorage))
-
-    local Seq2 = nn.Sequential()
-    Seq2:add(nn.Mul(sizesLongStorage))
-    Seq2:add(nn.Add(sizesLongStorage, e))
-
-    local p = nn.ConcatTable()
-    p:add(Seq1)
-    p:add(Seq2)
-
-    local NL = nn.Sequential()
-    NL:add(p)
-    NL:add(nn.CAddTable())
-
-    function NL:updateStaticParameters(options)
-        -- set the parameters
-        self:get(1):get(1):get(1).weight[1] = options.b
-        self:get(1):get(1):get(2).bias[1]   = options.c
-        self:get(1):get(1):get(4).weight[1] = options.a
-        self:get(1):get(2):get(1).weight[1] = options.d
-        self:get(1):get(2):get(2).bias[1]   = options.e
-    end
-
-    NL:updateStaticParameters(options)
-
-    return NL
-end
-
---return (a1*tanh(b1*x + c1)  + d1*x + e1) + (a2*tanh(b2*x + c2) + d2*x + e2)
-function nnet.DoubleNL(nl, sizesLongStorage, options1, options2)
-    local p = nn.ConcatTable()
-    p:add(nnet.NL(nl, sizesLongStorage, options1))
-    p:add(nnet.NL(nl, sizesLongStorage, options2))
-
-    local DoubleNL = nn.Sequential()
-    DoubleNL:add(p)
-    DoubleNL:add(nn.CAddTable())
-
-    function DoubleNL:updateStaticParameters(options1, options2)
-        self:get(1):get(1):updateStaticParameters(options1)
-        self:get(1):get(2):updateStaticParameters(options2)
-    end
-
-    DoubleNL:updateStaticParameters(options1, options2)
-
-    return DoubleNL
 end
 
 function nnet.get_net(options)
@@ -182,20 +125,25 @@ function nnet.get_net(options)
     for _, v in pairs(options.n_units) do
         if v ~= 0 then
             if n_old then 
+                print(n_old,v)
                 local lin = nn.Linear(n_old, v)
                 lin.weight:apply(init_weight)
                 lin.bias:apply(init_bias)
                 mlp:add(lin)
+            else
+                mlp:add(nn.Reshape(v))
             end
             n_old = v
         else 
-            mlp:add(options.NL)
+            mlp:add(options.NL())
         end
     end
     
     return mlp
 end
 
+
+--[[
 
 function nnet.eval_obj(options)
     if type(options.objectiveFunction) == 'function' then
@@ -208,7 +156,7 @@ function nnet.eval_obj(options)
     assert(options.objectiveFunction, 'Error in loading objective function string...')
 end 
 
-
+--]]
 
 
 function nnet.get_model(options, suppressPrinting)
@@ -218,16 +166,16 @@ function nnet.get_model(options, suppressPrinting)
         if not suppressPrinting then
             print('Creating new model...')   
         end
-        options.NL = nnd.PNL(nnet.NL(options.nl, torch.LongStorage({options.h1}), options))
+        options.NL = options.nl
+        --nnd.PNL(nnet.NL(options.nl, torch.LongStorage({options.h1}), options))
         ret.network = nnet.get_net(options)
     else
         if not suppressPrinting then
             print('Loading previously trained model: ' .. options.network)
         end
         ret = torch.load(options.network)
-        
-        -- always load objective function from saved net file
-        options.obj = ret.options.obj
+
+        --[[
 
         -- load NL parameters from saved net file only if undefined in command line
         if options.a == math.huge then
@@ -251,9 +199,10 @@ function nnet.get_model(options, suppressPrinting)
         end
         
         options.NL = nnd.PNL(nnet.NL(nn.Tanh, torch.LongStorage({options.h1}), options))
+        --]]
     end
     local model = ret.network
-    nnet.eval_obj(options)
+    --nnet.eval_obj(options)
 
     
     nnet.updatePNLParameters(model, options, suppressPrinting) 
@@ -322,4 +271,63 @@ function nnet.eval_net(samples, funs, options)
     return torch.mean(torch.pow(samples:clone():apply(funs[1]):add(-samples:clone():apply(funs[2])),2)) -- L2
 end
 
+
+
+
+-- return a Sequential module which
+-- implements a*NL(b*x + c) + d*x + e
+function nnet.NL(nl, sizesLongStorage, options)  
+    -- construct the module
+    
+    local Seq1 = nn.Sequential()
+    Seq1:add(nn.Mul(sizesLongStorage))
+    Seq1:add(nn.Add(sizesLongStorage, c))
+    Seq1:add(nl())
+    Seq1:add(nn.Mul(sizesLongStorage))
+
+    local Seq2 = nn.Sequential()
+    Seq2:add(nn.Mul(sizesLongStorage))
+    Seq2:add(nn.Add(sizesLongStorage, e))
+
+    local p = nn.ConcatTable()
+    p:add(Seq1)
+    p:add(Seq2)
+
+    local NL = nn.Sequential()
+    NL:add(p)
+    NL:add(nn.CAddTable())
+
+    function NL:updateStaticParameters(options)
+        -- set the parameters
+        self:get(1):get(1):get(1).weight[1] = options.b
+        self:get(1):get(1):get(2).bias[1]   = options.c
+        self:get(1):get(1):get(4).weight[1] = options.a
+        self:get(1):get(2):get(1).weight[1] = options.d
+        self:get(1):get(2):get(2).bias[1]   = options.e
+    end
+
+    NL:updateStaticParameters(options)
+
+    return NL
+end
+
+--return (a1*tanh(b1*x + c1)  + d1*x + e1) + (a2*tanh(b2*x + c2) + d2*x + e2)
+function nnet.DoubleNL(nl, sizesLongStorage, options1, options2)
+    local p = nn.ConcatTable()
+    p:add(nnet.NL(nl, sizesLongStorage, options1))
+    p:add(nnet.NL(nl, sizesLongStorage, options2))
+
+    local DoubleNL = nn.Sequential()
+    DoubleNL:add(p)
+    DoubleNL:add(nn.CAddTable())
+
+    function DoubleNL:updateStaticParameters(options1, options2)
+        self:get(1):get(1):updateStaticParameters(options1)
+        self:get(1):get(2):updateStaticParameters(options2)
+    end
+
+    DoubleNL:updateStaticParameters(options1, options2)
+
+    return DoubleNL
+end
 
