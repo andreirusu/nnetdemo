@@ -83,7 +83,23 @@ local function check_ds(ds1, ds2)
 end
 
 
-function cv.KFolds(_ds, options) 
+local function write_ds_file(filename, trainPath, testPath)
+
+    local ds_file_string = "require 'dataset/TableDataset' \n\n" .. 
+        "return { \n" ..
+        "    train = torch.load('"..trainPath.."'),\n" ..
+        "    test = torch.load('"..testPath.."')\n" ..
+        "}\n" 
+
+    local f = io.open(filename, 'w')
+    f:write(ds_file_string)
+    f:close()
+
+end
+
+function cv.KFolds(_ds, options)
+
+    
     local ds = _ds.dataset
     
     if ds.cass then 
@@ -134,6 +150,11 @@ function cv.KFolds(_ds, options)
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'train.th7'), fold_ds)
         end
+        
+        write_ds_file(paths.concat(paths.concat(root_path, i), 'fold'), 
+                        paths.concat(paths.concat(root_path, i), 'train.th7'), 
+                        paths.concat(paths.concat(root_path, i), 'test.th7'))
+
     end
     collectgarbage()
     -- intermediate folds
@@ -171,7 +192,12 @@ function cv.KFolds(_ds, options)
             fold_ds.trainIdx = {{1, (i-1)*fold_size}, {i*fold_size+1, perm_data:size(1)}}
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'train.th7'), fold_ds)
-        end 
+        end
+
+        write_ds_file(paths.concat(paths.concat(root_path, i), 'fold'), 
+                        paths.concat(paths.concat(root_path, i), 'train.th7'), 
+                        paths.concat(paths.concat(root_path, i), 'test.th7'))
+
         collectgarbage()
     end
     -- last fold
@@ -206,7 +232,11 @@ function cv.KFolds(_ds, options)
             fold_ds.trainIdx = {1, (i-1)*fold_size}
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'train.th7'), fold_ds)
-        end 
+        end
+      
+        write_ds_file(paths.concat(paths.concat(root_path, i), 'fold'), 
+                        paths.concat(paths.concat(root_path, i), 'train.th7'), 
+                        paths.concat(paths.concat(root_path, i), 'test.th7'))
     end
     do
         -- test datasets
