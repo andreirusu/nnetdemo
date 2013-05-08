@@ -114,6 +114,7 @@ function cv.KFolds(_ds, options)
             fold_ds = cv.resample(fold_ds, options)
             fold_ds.source = options.dataset
             fold_ds.perm = perm
+            fold_ds.testIdx = {1, fold_size}
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'test.th7'), fold_ds)
         end
@@ -129,6 +130,7 @@ function cv.KFolds(_ds, options)
             fold_ds = cv.resample(fold_ds, options)
             fold_ds.source = options.dataset
             fold_ds.perm = perm
+            fold_ds.trainIdx = {fold_size+1, perm_data:size(1)}
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'train.th7'), fold_ds)
         end
@@ -147,6 +149,7 @@ function cv.KFolds(_ds, options)
             fold_ds = cv.resample(fold_ds, options)
             fold_ds.source = options.dataset
             fold_ds.perm = perm
+            fold_ds.testIdx = {(i-1)*fold_size+1, i*fold_size}
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'test.th7'), fold_ds)
         end
@@ -165,6 +168,7 @@ function cv.KFolds(_ds, options)
             fold_ds = cv.resample(fold_ds, options)
             fold_ds.source = options.dataset
             fold_ds.perm = perm
+            fold_ds.trainIdx = {{1, (i-1)*fold_size}, {i*fold_size+1, perm_data:size(1)}}
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'train.th7'), fold_ds)
         end 
@@ -183,6 +187,7 @@ function cv.KFolds(_ds, options)
             fold_ds = cv.resample(fold_ds, options)
             fold_ds.source = options.dataset
             fold_ds.perm = perm
+            fold_ds.testIdx = {(i-1)*fold_size+1, perm_data:size(1)}
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'test.th7'), fold_ds)
         end
@@ -198,6 +203,7 @@ function cv.KFolds(_ds, options)
             fold_ds = cv.resample(fold_ds, options)
             fold_ds.source = options.dataset
             fold_ds.perm = perm
+            fold_ds.trainIdx = {1, (i-1)*fold_size}
             print(fold_ds)
             torch.save(paths.concat(paths.concat(root_path, i), 'train.th7'), fold_ds)
         end 
