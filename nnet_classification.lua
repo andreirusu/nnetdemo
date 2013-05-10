@@ -8,6 +8,11 @@ require 'sys'
 require 'dataset'
 require 'dataset/TableDataset'
 
+require 'nnd'
+require 'experiment'
+require 'xae'
+
+
 
 
 nnet = {}
@@ -28,19 +33,20 @@ function nnet.parse_arg(arg, initNLparams)
     cmd:option('-network',          '',                     'reload pretrained network')
     cmd:option('-visualize',        false,                  'visualize input data and weights during training')
     cmd:option('-seed',             0,                      'fixed input seed for repeatable experiments')
-    cmd:option('-szMinibatch',      10,                     'mini-batch size (1 = pure stochastic)')
+    cmd:option('-szMinibatch',      1,                     'mini-batch size (1 = pure stochastic)')
     cmd:option('-learningRate',     0.1,                    'learning rate at t=0')
     cmd:option('-weightDecay',      0,                      'weight decay (SGD only)')
     cmd:option('-learningRateDecay',1e-3,                   'learning rate decay (SGD only)')
     cmd:option('-momentum',         0,                      'momentum (SGD only)')
+    cmd:option('-dropoutRatio',     0.5,                    'Dropout')
     cmd:option('-threads',          1,                      'nb of threads to use')
     cmd:option('-maxEpochs',        math.huge,              'maximum number of epochs to train')
     cmd:option('-maxTime',          math.huge,              'maximum time to train (seconds)')
     cmd:option('-noplot',           false,                  'disable plotting')
     cmd:option('-double', 	        true,            	    'set default tensor type to double')
     cmd:option('-size',             100,            	    'set number of samples')
-    cmd:option('-saveEvery',        1000,            	    'set number of epochs between saves')
-    cmd:option('-reportEvery',      100,            	    'set number of epochs between saves')
+    cmd:option('-saveEvery',        100,            	    'set number of epochs between saves')
+    cmd:option('-reportEvery',      10,            	    'set number of epochs between saves')
     cmd:option('-meanWeight',       0,            	        'mean value of initial gaussian weights')
     cmd:option('-meanBias',         0,            	        'mean value of initial gaussian biases')
     cmd:option('-stdWeight',        1,            	        'standard deviation of initial gaussian weights')
@@ -69,47 +75,9 @@ function nnet.parse_arg(arg, initNLparams)
 end
 
 
-function nnet.wrapFunction(str)
-    return loadstring('return '..str)()
-end
-
-function nnet.set_options(options)
-    local options = options or {}
-     
-    options.n_units = {options.input, 100, 0, 100, 0, options.nclasses}
-
-    options.nl = nnet.wrapFunction(options.nl)
-
-    return options
-end
 
 
-
-
-function nnet.updatePNLParameters(mlp, options, suppressPrinting) 
-    for i = 1,mlp:size(),1 do
-        local layer = mlp:get(i)
-        if torch.typename(layer) == 'nnd.PNL' then
-            if not suppressPrinting then
-                print('Updating parameters of: ', layer)
-            end
-            layer:updateStaticParameters(options, suppressPrinting)
-        end
-    end
-end
-
-function nnet.get_net(options)
-
-    --[[
-    options.NL = nnd.PNL(nnet.DoubleNL(nn.Tanh, 
-                    torch.LongStorage({options.h1}), 
-                    options,  
-                    {a = options.a,  
-                     b = options.b, 
-                     c = -options.c, 
-                     d = options.d, 
-                     e = options.e } ))
-    --]]
+function nnet.get_new_net(options)
 
     local mlp = nn.Sequential()
 
@@ -131,50 +99,62 @@ function nnet.get_net(options)
                 lin.bias:apply(init_bias)
                 mlp:add(lin)
             else
-                mlp:add(nn.Reshape(v))
+                mlp:add(nn.Reshape(options.input))
             end
             n_old = v
-        else 
+        else
             mlp:add(options.NL())
+            mlp:add(nnd.Dropout(options.dropoutRatio))
         end
     end
+    mlp:add(nn.LogSoftMax())
     
     return mlp
 end
 
 
---[[
+local function convert_mlp(net, options)
+    local newnet = nn.Sequential()
+    newnet:add(nn.Reshape(options.input))
+    local n_old
+    for i = 1,net:size() do
+        local module = net:get(i)
+        if torch.typename(module) == 'nn.Linear' then
+            print(torch.typename(module))
+            local newmodule =  nn.Linear(module.weight:size(2), module.weight:size(1))
+            newmodule.weight:resizeAs(module.weight):copy(module.weight)
+            newmodule.bias:resizeAs(module.bias):copy(module.bias)
+            newnet:add(newmodule)            
+            newnet:add(options.NL())
+            newnet:add(nnd.Dropout(options.dropoutRatio))
 
-function nnet.eval_obj(options)
-    if type(options.objectiveFunction) == 'function' then
-        return
+            n_old = module.bias:size(1)
+        end
     end
-    assert(type(options.obj) == 'string', 'Objective function string error...')
-
-    print('Loading objective function from string: ', options.obj)
-    options.objectiveFunction = nnet.wrapFunction(options.obj)
-    assert(options.objectiveFunction, 'Error in loading objective function string...')
-end 
-
---]]
-
+    newnet:add(nn.Linear(n_old, options.nclasses))
+    newnet:add(nn.LogSoftMax())
+    return newnet
+end
 
 function nnet.get_model(options, suppressPrinting)
     -- get a model; default behavior is to load, otherwise create
     local ret = {} 
+    options.NL = options.nl
     if not options.network or options.network == '' then
         if not suppressPrinting then
             print('Creating new model...')   
         end
-        options.NL = options.nl
         --nnd.PNL(nnet.NL(options.nl, torch.LongStorage({options.h1}), options))
-        ret.network = nnet.get_net(options)
+        ret.network = nnet.get_new_net(options)
     else
         if not suppressPrinting then
             print('Loading previously trained model: ' .. options.network)
         end
-        ret = torch.load(options.network)
-
+        local imp = torch.load(options.network, 'ascii') 
+        
+        local mlp = convert_mlp(imp, options) 
+        ret.network=mlp
+         
         --[[
 
         -- load NL parameters from saved net file only if undefined in command line
@@ -246,6 +226,22 @@ function nnet.init_experiment(options)
 end
 
 
+function nnet.wrapFunction(str)
+    return loadstring('return '..str)()
+end
+
+function nnet.set_options(options)
+    local options = options or {}
+     
+    options.n_units = {options.input, 100, 0, options.nclasses}
+
+    options.nl = nnet.wrapFunction(options.nl)
+
+    return options
+end
+
+
+
 function nnet.plot(samples, funs, options)
     if options.noplot then
         return
@@ -272,6 +268,17 @@ function nnet.eval_net(samples, funs, options)
 end
 
 
+
+--[[
+options.NL = nnd.PNL(nnet.DoubleNL(nn.Tanh, 
+                torch.LongStorage({options.h1}), 
+                options,  
+                {a = options.a,  
+                 b = options.b, 
+                 c = -options.c, 
+                 d = options.d, 
+                 e = options.e } ))
+--]]
 
 
 -- return a Sequential module which
@@ -330,4 +337,18 @@ function nnet.DoubleNL(nl, sizesLongStorage, options1, options2)
 
     return DoubleNL
 end
+
+
+function nnet.updatePNLParameters(mlp, options, suppressPrinting) 
+    for i = 1,mlp:size(),1 do
+        local layer = mlp:get(i)
+        if torch.typename(layer) == 'nnd.PNL' then
+            if not suppressPrinting then
+                print('Updating parameters of: ', layer)
+            end
+            layer:updateStaticParameters(options, suppressPrinting)
+        end
+    end
+end
+
 
