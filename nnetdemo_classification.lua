@@ -156,6 +156,11 @@ function train_network(model, train_ds, config, options)
     end
 end
 
+local function appendFile(filename, t)
+    local f = io.open(filename, 'a')
+    f:write(string.format('%s\n', tostring(t)))
+    f:close()
+end
 
 local function eval_network(mlp, samples, epoch, options) 
     local train_mlp_loss, train_confusion = test_network(mlp, samples.train, config, options, 5000)
@@ -166,10 +171,13 @@ local function eval_network(mlp, samples, epoch, options)
                                                                         train_mlp_loss, 
                                                                         train_confusion.totalValid*100,
                                                                         tostring(train_confusion)))
+    appendFile(paths.concat(options.save, 'train.accuracy.txt'),train_confusion.totalValid) 
+
     print(string.format('Epoch %3d: \tMLP Test loss: %.4f\t Test accuracy: %.4f%%\n%s\n\n\n', epoch, 
                                                                         test_mlp_loss, 
                                                                         test_confusion.totalValid*100,
                                                                         tostring(test_confusion)))
+    appendFile(paths.concat(options.save, 'test.accuracy.txt'),test_confusion.totalValid) 
 end
 
 
