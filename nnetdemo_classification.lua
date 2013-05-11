@@ -185,16 +185,28 @@ local function main()
     print(samples)
   
 
+    local epoch = 0
     local mlp = nnet.get_model(options) 
+    -- save initial model
+    nnet.save_network({network=mlp}, options)
+    -- eval initial model
+    eval_network(mlp, samples, epoch, options) 
 
+
+    ------ TRAINING -------
 
     local config = {learningRate        = options.learningRate,
                     momentum            = options.momentum,
                     weightDecay         = options.weightDecay,
                     learningRateDecay   = options.learningRateDecay }
     
-    local epoch = 0 
+
+
     while true do
+        epoch = epoch + 1
+        print('Epoch: ', epoch)
+        train_network(mlp, samples.train, config, options)
+        
         if epoch % options.saveEvery == 0 then 
             nnet.save_network({network=mlp}, options)
         end
@@ -202,16 +214,20 @@ local function main()
             eval_network(mlp, samples, epoch, options) 
         end
                 
-        train_network(mlp, samples.train, config, options)
-        -- check max time 
+        -- check max wallclock time 
         if (os.clock() - start_time) > options.maxTime then
             print('MaxTime reached...')
             eval_network(mlp, samples, epoch, options) 
             nnet.save_network({network=mlp}, options)
             break
+        -- check max epochs
+        elseif epoch == options.maxEpochs then 
+            print('MaxEpochs reached...')
+            eval_network(mlp, samples, epoch, options) 
+            nnet.save_network({network=mlp}, options)
+            break
         end
 
-        epoch = epoch + 1
     end
 
 end
