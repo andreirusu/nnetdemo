@@ -212,6 +212,7 @@ end
 
 
 function nnet.init_experiment(options)
+    start_time = os.clock()
     -- set random seed
     torch.manualSeed(options.seed)
     -- set number of threads 

@@ -148,9 +148,29 @@ function train_network(model, train_ds, config, options)
         end
 
         optim.sgd(feval, parameters, config)
+
+        -- check max time 
+        if (os.clock() - start_time) > options.maxTime then
+            break
+        end
     end
 end
 
+
+local function eval_network(mlp, samples, epoch, options) 
+    local train_mlp_loss, train_confusion = test_network(mlp, samples.train, config, options, 5000)
+    local test_mlp_loss, test_confusion = test_network(mlp, samples.test, config, options, 5000)
+    train_confusion:updateValids()
+    test_confusion:updateValids()
+    print(string.format('\nEpoch %3d: \tMLP Train loss: %.4f\t Train accuracy: %.4f%%\n%s\n\n', epoch, 
+                                                                        train_mlp_loss, 
+                                                                        train_confusion.totalValid*100,
+                                                                        tostring(train_confusion)))
+    print(string.format('Epoch %3d: \tMLP Test loss: %.4f\t Test accuracy: %.4f%%\n%s\n\n\n', epoch, 
+                                                                        test_mlp_loss, 
+                                                                        test_confusion.totalValid*100,
+                                                                        tostring(test_confusion)))
+end
 
 
 local function main()
@@ -179,21 +199,17 @@ local function main()
             nnet.save_network({network=mlp}, options)
         end
         if epoch % options.reportEvery == 0 then 
-            local train_mlp_loss, train_confusion = test_network(mlp, samples.train, config, options, 5000)
-            local test_mlp_loss, test_confusion = test_network(mlp, samples.test, config, options, 5000)
-            train_confusion:updateValids()
-            test_confusion:updateValids()
-            print(string.format('\nEpoch %3d: \tMLP Train loss: %.4f\t Train accuracy: %.4f%%\n%s\n\n', epoch, 
-                                                                                train_mlp_loss, 
-                                                                                train_confusion.totalValid*100,
-                                                                                tostring(train_confusion)))
-            print(string.format('Epoch %3d: \tMLP Test loss: %.4f\t Test accuracy: %.4f%%\n%s\n\n\n', epoch, 
-                                                                                test_mlp_loss, 
-                                                                                test_confusion.totalValid*100,
-                                                                                tostring(test_confusion)))
+            eval_network(mlp, samples, epoch, options) 
         end
                 
         train_network(mlp, samples.train, config, options)
+        -- check max time 
+        if (os.clock() - start_time) > options.maxTime then
+            print('MaxTime reached...')
+            eval_network(mlp, samples, epoch, options) 
+            nnet.save_network({network=mlp}, options)
+            break
+        end
 
         epoch = epoch + 1
     end
