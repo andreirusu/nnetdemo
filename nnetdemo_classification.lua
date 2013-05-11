@@ -57,7 +57,7 @@ function setEnableDropout(mlp, state)
         local module = mlp:get(i)
         if torch.typename(module) == 'nnd.Dropout' then
             module:setEnabled(state)
-            print(mlp:get(i))
+            print(' --> ',tostring(mlp:get(i)))
         end
     end
 end
@@ -204,16 +204,10 @@ local function main()
 
     while true do
         epoch = epoch + 1
-        print('Epoch: ', epoch)
+        print('\nEpoch: ', epoch)
         train_network(mlp, samples.train, config, options)
-        
-        if epoch % options.saveEvery == 0 then 
-            nnet.save_network({network=mlp}, options)
-        end
-        if epoch % options.reportEvery == 0 then 
-            eval_network(mlp, samples, epoch, options) 
-        end
-                
+        print('Done')        
+
         -- check max wallclock time 
         if (os.clock() - start_time) > options.maxTime then
             print('MaxTime reached...')
@@ -228,6 +222,13 @@ local function main()
             break
         end
 
+        if epoch % options.saveEvery == 0 then 
+            nnet.save_network({network=mlp}, options)
+        end
+        if epoch % options.reportEvery == 0 then 
+            eval_network(mlp, samples, epoch, options) 
+        end
+                
     end
 
 end

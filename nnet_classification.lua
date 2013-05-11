@@ -185,11 +185,11 @@ function nnet.get_model(options, suppressPrinting)
     --nnet.eval_obj(options)
 
     
-    nnet.updatePNLParameters(model, options, suppressPrinting) 
+    --nnet.updatePNLParameters(model, options, suppressPrinting) 
 
     if not suppressPrinting then
         print(options)
-        print(model)
+        print(tostring(model))
         print('Done')
     end
     return model
@@ -242,7 +242,13 @@ function nnet.set_options(options)
 end
 
 
+function nnet.get_data(options)
+    assert(paths.filep(options.dataset))
+    return dofile(options.dataset)
+end
 
+
+--[[
 function nnet.plot(samples, funs, options)
     if options.noplot then
         return
@@ -258,16 +264,11 @@ function nnet.plot(samples, funs, options)
     gnuplot.plot(tab)
 end
 
-function nnet.get_data(options)
-    assert(paths.filep(options.dataset))
-    return dofile(options.dataset)
-end
-
 function nnet.eval_net(samples, funs, options)
     --return torch.mean(torch.abs(samples:clone():apply(funs[1]):add(-samples:clone():apply(funs[2])))) -- L1
     return torch.mean(torch.pow(samples:clone():apply(funs[1]):add(-samples:clone():apply(funs[2])),2)) -- L2
 end
-
+--]]
 
 
 --[[
