@@ -217,6 +217,7 @@ function nnet.init_experiment(options)
     torch.manualSeed(options.seed)
     -- set number of threads 
     os.execute('export OMP_NUM_THREADS='..options.threads)
+    os.execute('rm -Rf '..paths.concat(options.save, '*accuracy*'))
     torch.setnumthreads(options.threads)
     -- change tensor type to float, unless double flag is raised
     if options.double then
