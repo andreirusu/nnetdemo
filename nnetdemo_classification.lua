@@ -64,6 +64,40 @@ end
 
 
 
+function predict(model, test_ds, options)
+    local data = test_ds.dataset.data
+
+    setEnableDropout(model, false)
+   
+    if not limit then limit = test_ds:size() end
+    
+    local mb_size = 1000
+
+    local loss = 0
+    for t = 1, test_ds:size() - 1, mb_size do
+        local inputs = torch.Tensor(mb_size, options.input)
+        for i=1,mb_size,1 do
+            if (t+i) <= test_ds:size() then 
+                inputs[i]:copy(data[t+i]:resize(options.input))
+            else 
+                inputs = inputs:narrow(1,1, i-1)
+                break
+            end
+        end
+
+        
+        local preds = model:forward(inputs)
+        
+        local row_maxes, row_max_indices = torch.max(preds, 2)
+        for i=1,inputs:size(1) do
+            print(string.format('%.1f', row_max_indices[i][1] - 1))
+        end
+
+    end
+end
+
+
+
 function test_network(model, test_ds, config, options, limit)
     local criterion = nn.ClassNLLCriterion()
     local parameters, gradParameters = model:getParameters()
@@ -71,8 +105,6 @@ function test_network(model, test_ds, config, options, limit)
     local class = test_ds.dataset.class
 
     local confusion = optim.ConfusionMatrix(classes(test_ds))
-    local shuffle = torch.randperm(test_ds:size())
-
 
     setEnableDropout(model, false)
    
@@ -87,8 +119,8 @@ function test_network(model, test_ds, config, options, limit)
         
         for i=1,mb_size,1 do
             if (t+i) <= test_ds:size() then 
-                inputs[i]:copy(data[shuffle[t+i]]:resize(options.input))
-                targets[i] = class[shuffle[t+i]]
+                inputs[i]:copy(data[t+i]:resize(options.input))
+                targets[i] = class[t+i]
             else 
                 inputs = inputs:narrow(1,1, i-1)
                 targets = targets:narrow(1,1, i-1)
@@ -191,10 +223,18 @@ local function main()
     local samples = nnet.get_data(options)
 
     print(samples)
-  
 
-    local epoch = 0
     local mlp = nnet.get_model(options) 
+    
+     
+    if options.test then
+        predict(mlp, samples.test, options) 
+        os.exit()
+    end
+    
+
+    
+    local epoch = 0
     -- save initial model
     nnet.save_network({network=mlp}, options)
     -- eval initial model

@@ -30,7 +30,8 @@ function nnet.parse_arg(arg, initNLparams)
     cmd:option('-dataset',          '',                     'input dataset')
     cmd:option('-input',            0,                      'number of input features')
     cmd:option('-nclasses',         0,                      'number of classes')
-    cmd:option('-network',          '',                     'reload pretrained network')
+    cmd:option('-import',           '',                     'load pretrained network')
+    cmd:option('-network',          '',                     'load previous experiment')
     cmd:option('-visualize',        false,                  'visualize input data and weights during training')
     cmd:option('-seed',             0,                      'fixed input seed for repeatable experiments')
     cmd:option('-szMinibatch',      100,                    'mini-batch size (1 = pure stochastic)')
@@ -51,6 +52,7 @@ function nnet.parse_arg(arg, initNLparams)
     cmd:option('-meanBias',         0,            	        'mean value of initial gaussian biases')
     cmd:option('-stdWeight',        1,            	        'standard deviation of initial gaussian weights')
     cmd:option('-stdBias',          1,            	        'standard deviation of initial gaussian biases')
+    cmd:option('-test',             false,            	    'run in test mode')
     
     if initNLparams then
         cmd:option('-a',                1,            	        'NL parameter a')
@@ -140,6 +142,34 @@ function nnet.get_model(options, suppressPrinting)
     -- get a model; default behavior is to load, otherwise create
     local ret = {} 
     options.NL = options.nl
+    if options.import and options.import ~='' then
+        if not suppressPrinting then
+            print('Loading ae-export(ed)-model: ' .. options.import)
+        end
+        local imp = torch.load(options.import, 'ascii') 
+        local mlp = convert_mlp(imp, options) 
+        ret.network=mlp
+    elseif options.network and options.network ~= '' then
+        if not suppressPrinting then
+            print('Loading previously saved model: ' .. options.network)
+        end
+        if paths.dirp(options.network) then
+            local filename = paths.concat(options.network, 'mlp.net')
+            local mlp = torch.load(filename).network
+            ret.network = mlp
+        elseif paths.filep(options.network) then
+            local mlp = torch.load(options.network).network
+            ret.network = mlp
+        else
+            error('Unable to load: '..options.network)
+        end 
+    else
+        if not suppressPrinting then
+            print('Creating new model...')   
+        end
+        ret.network = nnet.get_new_net(options)
+    end
+    --[=[
     if not options.network or options.network == '' then
         if not suppressPrinting then
             print('Creating new model...')   
@@ -148,7 +178,7 @@ function nnet.get_model(options, suppressPrinting)
         ret.network = nnet.get_new_net(options)
     else
         if not suppressPrinting then
-            print('Loading previously trained model: ' .. options.network)
+            print('Loading ae-export-ed model: ' .. options.network)
         end
         local imp = torch.load(options.network, 'ascii') 
         
@@ -181,6 +211,7 @@ function nnet.get_model(options, suppressPrinting)
         options.NL = nnd.PNL(nnet.NL(nn.Tanh, torch.LongStorage({options.h1}), options))
         --]]
     end
+    --]=]
     local model = ret.network
     --nnet.eval_obj(options)
 
