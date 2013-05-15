@@ -72,6 +72,15 @@ function predict(model, test_ds, options)
     if not limit then limit = test_ds:size() end
     
     local mb_size = 1000
+    -- save output
+    local outputfile = tostring(options.dataset)
+    if options.network and options.network ~= '' then
+        outputfile = outputfile..'.'..options.network
+    elseif  options.import and options.import ~= '' then 
+        outputfile = outputfile..'.'..options.import
+    end
+    print('Saving predictions to file: '..outputfile)
+    local f = io.open(outputfile, 'w') 
 
     local loss = 0
     for t = 1, test_ds:size() - 1, mb_size do
@@ -87,13 +96,13 @@ function predict(model, test_ds, options)
 
         
         local preds = model:forward(inputs)
-        
-        local row_maxes, row_max_indices = torch.max(preds, 2)
-        for i=1,inputs:size(1) do
-            print(string.format('%.1f', row_max_indices[i][1] - 1))
-        end
 
+                local row_maxes, row_max_indices = torch.max(preds, 2)
+        for i=1,inputs:size(1) do
+            f:write(string.format('%.1f\n', row_max_indices[i][1]))
+        end
     end
+    f:close()
 end
 
 
