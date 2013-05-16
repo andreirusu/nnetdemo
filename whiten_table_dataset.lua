@@ -37,9 +37,9 @@ local function main()
     if options.params == '' then 
     	print('Estimating parameters ...')
         ds.means, ds.P, ds.invP = unsup.zca_whiten(ds.dataset.data)
-        assert(params_ds.means)
-        assert(params_ds.P)
-        assert(params_ds.invP)
+        assert(ds.means)
+        assert(ds.P)
+        assert(ds.invP)
     else
     	print('Loading parameters...')
         local params_ds = torch.load(options.params)
