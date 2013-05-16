@@ -15,7 +15,7 @@ local function parse_arg(arg)
     cmd:text('Options:')
     cmd:option('-input',        '',         'input table dataset which will be ZCA-whitened')
     cmd:option('-output',       '',         'output table dataset')
-    cmd:option('-params',       '',         'params table dataset')
+    cmd:option('-params',       '',         'output table dataset')
 
     cmd:text()
     return cmd:parse(arg)
@@ -34,13 +34,17 @@ local function main()
     ds = torch.load(options.input)
     print(ds.dataset)
     
-    if not options.params ~= '' then 
-        ds.dataset.means, ds.dataset.P = dataset.zca_whiten(ds.dataset.data)
+    if options.params == '' then 
+    	print('Estimating parameters ...')
+        ds.means, ds.P = dataset.zca_whiten(ds.dataset.data)
     else
+    	print('Loading parameters...')
         local params_ds = torch.load(options.params)
-        ds.dataset.means, ds.dataset.P = dataset.zca_whiten(ds.dataset.data, params_ds.means, params_ds.P)
+	assert(params_ds.means)
+	assert(params_ds.P)
+        ds.means, ds.P = dataset.zca_whiten(ds.dataset.data, params_ds.means, params_ds.P)
     end
-    print(ds.dataset)
+    print(ds)
     torch.save(options.output, ds)
 end
 
