@@ -36,7 +36,7 @@ local function main()
     
     if options.params == '' then 
     	print('Estimating parameters ...')
-        ds.means, ds.P, ds.invP = unsup.zca_whiten(ds.dataset.data)
+        ds.dataset.data, ds.means, ds.P, ds.invP = unsup.zca_whiten(ds.dataset.data)
         assert(ds.means)
         assert(ds.P)
         assert(ds.invP)
@@ -46,7 +46,7 @@ local function main()
         assert(params_ds.means)
         assert(params_ds.P)
         assert(params_ds.invP)
-        ds.means, ds.P, ds.invP = unsup.zca_whiten(ds.dataset.data, params_ds.means, params_ds.P, params_ds.invP)
+        ds.dataset.data, ds.means, ds.P, ds.invP = unsup.zca_whiten(ds.dataset.data, params_ds.means, params_ds.P, params_ds.invP)
     end
     print(ds)
     torch.save(options.output, ds)
