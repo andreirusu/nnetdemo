@@ -17,6 +17,7 @@ local function parse_arg(arg)
     cmd:option('-output',       '',         'output table dataset')
     cmd:option('-params',       '',         'params dataset')
     cmd:option('-corr',         false,      'display data and correlation coefficients before and after whitening')
+    cmd:option('-quick',        false,      'do not compute correlation coefficients before and after whitening')
 
     cmd:text()
     return cmd:parse(arg)
@@ -72,8 +73,10 @@ local function main()
     ds = torch.load(options.input)
     print('Input dataset: ', ds)
 
-    display_corr(ds, options)
-    
+    if options.quick then
+        display_corr(ds, options)
+    end
+
     if options.params == '' then 
     	print('Estimating parameters ...')
         ds.dataset.data, ds.means, ds.P, ds.invP = unsup.zca_whiten(ds.dataset.data)
@@ -95,7 +98,9 @@ local function main()
     end
     print('Whitened dataset: ', ds)
 
-    display_corr(ds, options)
+    if options.quick then
+        display_corr(ds, options)
+    end
 
     if options.output ~= '' then 
         print('Saving output to: '..options.output)
