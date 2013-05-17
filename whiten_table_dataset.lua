@@ -24,17 +24,18 @@ end
 
 
 
-function display_corr(ds) 
+function display_corr(ds, options) 
 
     local data = ds.dataset.data:squeeze() -- :narrow(1, 1, 100)
 
-    print(data:size())
+    if options.corr then 
+        image.display({image=data, symmetric=true, min=-1, max=1})
+    end
 
-    image.display({image=data, symmetric=true, min=-1, max=1})
-
-    print('Min data:', torch.min(data))
-    print('Mean data:', torch.mean(data))
-    print('Max data:', torch.max(data))
+    print('Dataset stats:')
+    print({ Min     =   torch.min(data), 
+            Mean    =   torch.mean(data),
+            Max     =   torch.max(data)     })
 
     local corr = torch.Tensor(data:size(2), data:size(2))
 
@@ -48,12 +49,15 @@ function display_corr(ds)
         end
     end
 
-    print('Min corr:', torch.min(corr))
-    print('Mean corr:', torch.mean(corr))
-    print('Max corr:', torch.max(corr))
+    print('Dataset stats:')
+    print({ Min     =   torch.min(corr),
+            Mean    =   torch.mean(corr),
+            Max     =   torch.max(corr)    })
 
 
-    image.display({image=corr, symmetric=true, min=-1, max=1, legend=filename..' input dimension correlation coefficient'})
+    if options.corr then 
+        image.display({image=corr, symmetric=true, min=-1, max=1, legend=filename..' input dimension correlation coefficient'})
+    end
 end
 
 
@@ -68,9 +72,7 @@ local function main()
     ds = torch.load(options.input)
     print('Input dataset: ', ds)
 
-    if options.corr then 
-        display_corr(ds)
-    end
+    display_corr(ds, options)
     
     if options.params == '' then 
     	print('Estimating parameters ...')
@@ -93,12 +95,12 @@ local function main()
     end
     print('Whitened dataset: ', ds)
 
-    if options.corr then 
-        display_corr(ds)
-    end
+    display_corr(ds, options)
 
     if options.output ~= '' then 
-       torch.save(options.output, ds)
+        print('Saving output to: '..options.output)
+        torch.save(options.output, ds)
+        print('Done.')
     end
 
 end
