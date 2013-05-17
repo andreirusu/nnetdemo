@@ -17,7 +17,7 @@ local function parse_arg(arg)
     cmd:option('-output',       '',         'output table dataset')
     cmd:option('-params',       '',         'params dataset')
     cmd:option('-corr',         false,      'display data and correlation coefficients before and after whitening')
-    cmd:option('-quick',        true,      'do not compute correlation coefficients before and after whitening')
+    cmd:option('-quick',        false,      'do not compute correlation coefficients before and after whitening')
 
     cmd:text()
     return cmd:parse(arg)
@@ -37,6 +37,10 @@ function display_corr(ds, options)
     print({ Min     =   torch.min(data), 
             Mean    =   torch.mean(data),
             Max     =   torch.max(data)     })
+
+    if options.quick then
+        return 
+    end
 
     local corr = torch.Tensor(data:size(2), data:size(2))
 
@@ -73,9 +77,7 @@ local function main()
     ds = torch.load(options.input)
     print('Input dataset: ', ds)
 
-    if options.quick then
-        display_corr(ds, options)
-    end
+    display_corr(ds, options)
 
     if options.params == '' then 
     	print('Estimating parameters ...')
@@ -98,9 +100,7 @@ local function main()
     end
     print('Whitened dataset: ', ds)
 
-    if options.quick then
-        display_corr(ds, options)
-    end
+    display_corr(ds, options)
 
     if options.output ~= '' then 
         print('Saving output to: '..options.output)
