@@ -17,7 +17,7 @@ local function parse_arg(arg)
     cmd:option('-output',       '',         'output table dataset')
     cmd:option('-params',       '',         'params dataset')
     cmd:option('-corr',         false,      'display data and correlation coefficients before and after whitening')
-    cmd:option('-quick',        false,      'do not compute correlation coefficients before and after whitening')
+    cmd:option('-quick',        true,      'do not compute correlation coefficients before and after whitening')
 
     cmd:text()
     return cmd:parse(arg)
