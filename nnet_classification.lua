@@ -146,8 +146,8 @@ function nnet.get_model(options, suppressPrinting)
         if not suppressPrinting then
             print('Loading ae-export(ed)-model: ' .. options.import)
         end
-        local imp = torch.load(options.import, 'ascii') 
-        local mlp = convert_mlp(imp, options) 
+        -- execute the function returned by the import file and pass options
+        local mlp = dofile(options.import)(options) 
         ret.network=mlp
     elseif options.network and options.network ~= '' then
         if not suppressPrinting then
