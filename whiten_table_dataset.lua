@@ -6,6 +6,7 @@ require 'dataset/TableDataset'
 require 'dataset/whitening'
 require 'util'
 require 'util/arg'
+require 'VerySparseRandomProjections'
 
 
 
@@ -14,6 +15,8 @@ local function parse_arg(arg)
     local cmd = torch.CmdLine()
     cmd:text('Options:')
     cmd:option('-input',        '',         'input table dataset which will be ZCA-whitened')
+    cmd:option('-project',      0,          'use sparse random projections of the input table dataset before whitening')
+    cmd:option('-seed',         0,          'random number generator seed')
     cmd:option('-output',       '',         'output table dataset')
     cmd:option('-params',       '',         'params dataset')
     cmd:option('-corr',         false,      'display data and correlation coefficients before and after whitening')
@@ -24,6 +27,9 @@ local function parse_arg(arg)
 end
 
 
+function project(ds, proj, options)
+    ds.dataset.data = proj:forward(ds.dataset.data):clone()
+end
 
 function display_corr(ds, options) 
 
@@ -55,13 +61,13 @@ function display_corr(ds, options)
     end
 
     print('Dataset stats:')
-    print({ Min     =   torch.min(corr),
-            Mean    =   torch.mean(corr),
-            Max     =   torch.max(corr)    })
+    print({ Min_corr     =   torch.min(corr),
+            Mean_corr    =   torch.mean(corr),
+            Max_corr     =   torch.max(corr)    })
 
 
     if options.corr then 
-        image.display({image=corr, symmetric=true, min=-1, max=1, legend=filename..' input dimension correlation coefficient'})
+        image.display({image=corr, symmetric=true, min=-1, max=1, legend='input dimension correlation coefficient'})
     end
 end
 
@@ -69,7 +75,8 @@ end
 
 local function main()
     local options = parse_arg(arg)
-    
+   
+    torch.manualSeed(options.seed)
 
     assert(options.input ~= '')
 
@@ -77,10 +84,36 @@ local function main()
     ds = torch.load(options.input)
     print('Input dataset: ', ds)
 
-    display_corr(ds, options)
 
+    
     if options.params == '' then 
-    	print('Estimating parameters ...')
+        if options.project > 0 then
+            local data = ds.dataset.data
+    	    print('Creating very sparse random projection matrix ...')
+            ds.rand_projection_layer = nn.VerySparseRandomProjections(data:nElement()/data:size(1), options.project)
+            
+            print('Projection matrix column std stats:')
+            print({ Min     =   torch.min(torch.std(ds.rand_projection_layer.weight, 1)), 
+                    Mean    =   torch.mean(torch.std(ds.rand_projection_layer.weight, 1)),
+                    Max     =   torch.max(torch.std(ds.rand_projection_layer.weight, 1))     })
+
+            if options.corr then
+                
+                image.display({image=torch.cat(ds.rand_projection_layer.weight, 
+                                                ds.rand_projection_layer.bias, 2), 
+                                                    symmetric=true, min=-1, max=1, legend='very sparse random projection matrix'})
+            end
+            print('Done.')
+    	    
+            print('Projecting on '..options.project..' dimensions ...')
+            ds.dataset.data = ds.rand_projection_layer:forward(data:resize(data:size(1), 
+                                        data:nElement()/data:size(1))):resize(data:size(1), 1, 1, options.project):clone()
+            print('Done.')
+        end
+
+        display_corr(ds, options)
+
+    	print('Estimating whitening parameters ...')
         ds.dataset.data, ds.means, ds.P, ds.invP = unsup.zca_whiten(ds.dataset.data)
         assert(ds.means)
         assert(ds.P)
@@ -92,6 +125,35 @@ local function main()
         assert(params_ds.means)
         assert(params_ds.P)
         assert(params_ds.invP)
+
+        if options.project > 0 then
+            local data = ds.dataset.data
+            print('Loading sparse random projection matrix ...')
+            ds.rand_projection_layer = params_ds.rand_projection_layer:clone()
+            options.project = params_ds.rand_projection_layer.weight:size(1)
+ 
+            print('Projection matrix column std stats:')
+            print({ Min     =   torch.min(torch.std(ds.rand_projection_layer.weight, 1)), 
+                    Mean    =   torch.mean(torch.std(ds.rand_projection_layer.weight, 1)),
+                    Max     =   torch.max(torch.std(ds.rand_projection_layer.weight, 1))     })
+
+
+            if options.corr then
+                image.display({image=torch.cat(ds.rand_projection_layer.weight, 
+                                                ds.rand_projection_layer.bias, 2), 
+                                                    symmetric=true, min=-1, max=1, legend='very sparse random projection matrix'})
+
+            end
+            print('Done.')
+    	    
+            print('Projecting on '..options.project..' dimensions ...')
+            ds.dataset.data = ds.rand_projection_layer:forward(data:resize(data:size(1), 
+                                        data:nElement()/data:size(1))):resize(data:size(1), 1, 1, options.project):clone()
+            print('Done.')
+        end
+
+        display_corr(ds, options)
+
         ds.dataset.data, ds.means, ds.P, ds.invP = unsup.zca_whiten(ds.dataset.data, params_ds.means, params_ds.P, params_ds.invP)
         assert(ds.means)
         assert(ds.P)
@@ -101,6 +163,14 @@ local function main()
     print('Whitened dataset: ', ds)
 
     display_corr(ds, options)
+
+    if options.project > 0 then 
+        print('Projection matrix column std stats:')
+        print({ Min     =   torch.min(torch.std(ds.rand_projection_layer.weight, 1)), 
+                Mean    =   torch.mean(torch.std(ds.rand_projection_layer.weight, 1)),
+                Max     =   torch.max(torch.std(ds.rand_projection_layer.weight, 1))     })
+
+    end
 
     if options.output ~= '' then 
         print('Saving output to: '..options.output)
