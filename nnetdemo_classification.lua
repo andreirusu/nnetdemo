@@ -60,6 +60,7 @@ function setEnableDropout(mlp, state)
             print(' --> ',tostring(mlp:get(i)))
         end
     end
+    print('Done.')
 end
 
 
