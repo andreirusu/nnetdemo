@@ -236,21 +236,22 @@ local function main()
     local mlp = nnet.get_model(options) 
     
      
+    ------ JUST PREDICT -------
+    
     if options.test then
         predict(mlp, samples.test, options) 
         os.exit()
     end
     
 
+
+    ------ TRAINING -------
     
     local epoch = 0
     -- save initial model
     nnet.save_network({network=mlp}, options)
     -- eval initial model
     eval_network(mlp, samples, epoch, options) 
-
-
-    ------ TRAINING -------
 
     local config = {learningRate        = options.learningRate,
                     momentum            = options.momentum,
