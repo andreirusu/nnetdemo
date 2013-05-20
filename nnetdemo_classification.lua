@@ -26,30 +26,6 @@ local function classes(ds)
     return classes
 end
 
---[[
-function test_network(model, test_ds, config, options)
-    local criterion = nn.ClassNLLCriterion()
-    
-    local samples = test_ds:random_mini_batch({size=test_ds:size()})
-
-    local inputs    =   samples.data
-    local targets   =   samples.class
-
-    print(inputs:size())
-    print(targets:size())
-
-    local pred = model:forward(inputs:narrow(1,1,1000))
-    local loss = criterion:forward(pred, targets)
-
-
-    local confusion = optim.ConfusionMatrix(classes(test_ds))
-    for i=1,pred:size(1) do
-        confusion:add(pred[i], targets[i])
-    end
-    return loss, confusion
-end
---]]
-
 
 function setEnableDropout(mlp, state)
     print('Configuring MLP:')
@@ -205,8 +181,8 @@ local function appendFile(filename, t)
 end
 
 local function eval_network(mlp, samples, epoch, options) 
-    local train_mlp_loss, train_confusion = test_network(mlp, samples.train, config, options, 5000)
-    local test_mlp_loss, test_confusion = test_network(mlp, samples.test, config, options, 5000)
+    local train_mlp_loss, train_confusion = test_network(mlp, samples.train, config, options)
+    local test_mlp_loss, test_confusion = test_network(mlp, samples.test, config, options)
     train_confusion:updateValids()
     test_confusion:updateValids()
     print(string.format('\nEpoch %3d: \tMLP Train loss: %.4f\t Train accuracy: %.4f%%\n%s\n\n', epoch, 
