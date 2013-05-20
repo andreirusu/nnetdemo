@@ -74,7 +74,7 @@ function predict(model, test_ds, options)
         
         local preds = model:forward(inputs)
 
-                local row_maxes, row_max_indices = torch.max(preds, 2)
+        local row_maxes, row_max_indices = torch.max(preds, 2)
         for i=1,inputs:size(1) do
             f:write(string.format('%.1f\n', row_max_indices[i][1]))
         end
