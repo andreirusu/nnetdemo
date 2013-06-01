@@ -68,7 +68,7 @@ function nnet.parse_arg(arg, initNLparams)
         cmd:option('-e',                math.huge,         	    'NL parameter e')
     end
     cmd:option('-nl', 
-                    'nn.Tanh', 
+                    'nnd.Rectifier', 
                     'non-linearity layer')
 
 
@@ -266,13 +266,13 @@ end
 function nnet.set_options(options)
     local options = options or {}
      
-    options.n_units = {options.input, 100, 0, options.nclasses}
+    options.n_units = {options.input, 2000, 0, 2000, 0, 2000, 0, 2000, 0, 2000, options.nclasses}
+    --options.n_units = {options.input, 2000, 0, 2000, 0, 2000, options.nclasses}
 
     options.nl = nnet.wrapFunction(options.nl)
 
     return options
 end
-
 
 function nnet.get_data(options)
     assert(paths.filep(options.dataset))
