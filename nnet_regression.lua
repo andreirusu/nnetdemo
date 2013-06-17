@@ -5,6 +5,9 @@ require 'PNL'
 require 'util'
 require 'util/arg'
 require 'sys'
+require 'GaussianNoise'
+require 'Hebbian'
+
 
 
 nnet = {}
@@ -182,17 +185,22 @@ function nnet.get_net(options)
 
     local n_old 
     for _, v in pairs(options.n_units) do
-        if v ~= 0 then
-            if n_old then 
-                local lin = nn.Linear(n_old, v)
-                lin.weight:apply(init_weight)
-                lin.bias:apply(init_bias)
-                mlp:add(lin)
+        if type(v) == "number" then 
+            if v ~= 0 then
+                if n_old then
+                    local lin = nn.Linear(n_old, v)
+                    lin.weight:apply(init_weight)
+                    lin.bias:apply(init_bias)
+                    mlp:add(lin)
+                end
+                n_old = v
+            else 
+                mlp:add(options.NL)
             end
-            n_old = v
-        else 
-            mlp:add(options.NL)
+        else
+            mlp:add(v)
         end
+
     end
     
     return mlp
