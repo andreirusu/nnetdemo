@@ -14,19 +14,15 @@ function GaussianNoise:__init(sigma)
     sigma = sigma or 0.01
     parent.__init(self)
     self.sigma = sigma
-    self.noise = torch.Tensor()
-    self.input = torch.Tensor()
 end
 
 function GaussianNoise:updateOutput(input)
-    self.input:typeAs(input):resizeAs(input):copy(input)
-    self.noise:typeAs(input):resizeAs(input):copy(torch.randn(input:size()):mul(self.sigma))
-    self.output:typeAs(input):resizeAs(input):copy(input):add(self.noise)
+    self.output:typeAs(input):resizeAs(input):copy(input):add(torch.randn(input:size()):mul(self.sigma))
     return self.output
 end
 
 function GaussianNoise:updateGradInput(input, gradOutput)
-    self.gradInput:typeAs(input):resizeAs(input):copy(gradOutput)
+    self.gradInput:typeAs(gradOutput):resizeAs(gradOutput):copy(gradOutput)
     return self.gradInput
 end
 
