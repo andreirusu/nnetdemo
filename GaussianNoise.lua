@@ -13,8 +13,17 @@ local GaussianNoise, parent = torch.class('nnd.GaussianNoise', 'nn.Module')
 function GaussianNoise:__init(sigma)
     sigma = sigma or 0.01
     parent.__init(self)
+    self:setSigma(sigma)
+end
+
+function GaussianNoise:setSigma(sigma)
     self.sigma = sigma
 end
+
+function GaussianNoise:getSigma()
+    return self.sigma
+end
+
 
 function GaussianNoise:updateOutput(input)
     self.output:typeAs(input):resizeAs(input):copy(input):add(torch.randn(input:size()):mul(self.sigma))
