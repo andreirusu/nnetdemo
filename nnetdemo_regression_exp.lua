@@ -53,8 +53,9 @@ local function set_options(options)
                                                 --nnd.Hebbian(), 
                                                 nnd.GaussianNoise(),    --  normally distributed noisy tanh units
                                                 1,                      --  one linear output unit
-                                                nnd.Hebbian(), 
-                                                nnd.Deviation() }       --  back-propagated error is deviation from mean activity
+                                                --nnd.Hebbian(), 
+                                                nnd.Deviation(),      --  back-propagated error is deviation from mean activity
+                    }  
 
     options.nl = nnet.wrapFunction(options.nl)
 

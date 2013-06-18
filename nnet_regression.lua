@@ -7,6 +7,7 @@ require 'util/arg'
 require 'sys'
 require 'GaussianNoise'
 require 'Hebbian'
+require 'Deviation'
 
 
 
